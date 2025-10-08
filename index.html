@@ -14,17 +14,23 @@
   .input-row{display:flex;gap:10px}
   .input-row input{flex:1;padding:10px;border:1px solid #e9ecf3;border-radius:10px}
   button{cursor:pointer;border:0;border-radius:10px;padding:8px 12px;background:#22c55e;color:#fff;font-weight:600}
+  button.btn-outline{background:#fff;color:#111;border:1px solid #e9ecf3}
+  button.btn-danger{background:#ef4444;color:#fff}
   ul{list-style:none;padding:0;margin:12px 0 0}
   li{padding:8px;border-bottom:1px solid #eee}
   li.completed{text-decoration:line-through;color:#999}
+  .week{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-top:12px}
+  .week .day{border:1px solid #e9ecf3;border-radius:10px;padding:8px;background:#fafafa;display:flex;flex-direction:column}
+  .week .day textarea{flex:1;min-height:80px;margin-top:6px;border:1px solid #ddd;border-radius:6px;padding:6px}
 </style>
 </head>
 <body>
 <div class="wrap">
+
   <!-- 간단 To-Do 리스트 -->
   <div class="card">
     <div class="section">
-      <h1>✨ 오늘의 목표 (간단 버전)</h1>
+      <h1>✨ 오늘의 목표 (간단)</h1>
       <div class="input-row">
         <input type="text" id="simpleTaskInput" placeholder="새로운 목표를 추가해보세요!">
         <button id="simpleAddBtn">추가</button>
@@ -32,7 +38,6 @@
       <ul id="simpleTaskList">
         <li>코딩 공부 1시간 하기</li>
         <li class="completed">반려동물과 산책 다녀오기</li>
-        <li>새로운 패션 스타일 찾아보기</li>
       </ul>
     </div>
   </div>
@@ -40,12 +45,12 @@
   <!-- 고급 계획표 -->
   <div class="card">
     <div class="section">
-      <h1>📅 나만의 계획표 (확장 기능)</h1>
-      <p style="color:#6b7280;font-size:13px;margin:0 0 12px">날짜별 할 일 저장 · 완료율 · 주간 메모 · JSON 내보내기</p>
+      <h1>📅 나만의 계획표 (고급)</h1>
+      <p style="color:#6b7280;font-size:13px;margin:0 0 12px">날짜별 저장 · 완료율 · 주간 메모</p>
 
       <div class="input-row" style="margin-bottom:10px">
         <input type="date" id="datePick">
-        <button id="todayBtn">오늘</button>
+        <button id="todayBtn" class="btn-outline">오늘</button>
       </div>
 
       <h2>오늘의 목표</h2>
@@ -56,16 +61,24 @@
       <ul id="taskList"></ul>
 
       <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
-        <button id="clearDone">완료 모두 지우기</button>
-        <button id="exportBtn">내보내기(JSON)</button>
+        <button id="clearDone" class="btn-outline">완료 모두 지우기</button>
+        <button id="exportBtn" class="btn-outline">내보내기(JSON)</button>
         <input type="file" id="importFile" accept="application/json">
       </div>
+
+      <h2 style="margin-top:20px">주간 계획</h2>
+      <div id="weekGrid" class="week"></div>
+    </div>
+    <div class="section" style="border-top:1px solid #eee;display:flex;justify-content:space-between;align-items:center">
+      <span style="color:#777;font-size:13px">저장 위치: 브라우저 LocalStorage</span>
+      <button id="trashDay" class="btn-danger">이 날짜 데이터 초기화</button>
     </div>
   </div>
+
 </div>
 
 <script>
-/* ====== 간단 To-Do 리스트 ====== */
+/* ====== 간단 To-Do ====== */
 const simpleInput=document.getElementById("simpleTaskInput");
 const simpleBtn=document.getElementById("simpleAddBtn");
 const simpleList=document.getElementById("simpleTaskList");
@@ -89,6 +102,8 @@ const todayBtn=$("#todayBtn");
 const clearBtn=$("#clearDone");
 const exportBtn=$("#exportBtn");
 const importFile=$("#importFile");
+const weekGrid=$("#weekGrid");
+const trashDay=$("#trashDay");
 
 const fmt=d=>d.toISOString().slice(0,10);
 const KEY=ymd=>`plan.${ymd}`;
@@ -114,9 +129,9 @@ addBtn.addEventListener("click",()=>{
   }
 });
 todayBtn.addEventListener("click",()=>{
-  const t=new Date();datePick.value=fmt(t);renderTasks(t);
+  const t=new Date();datePick.value=fmt(t);renderTasks(t);renderWeek(t);
 });
-datePick.addEventListener("change",()=>renderTasks(new Date(datePick.value)));
+datePick.addEventListener("change",()=>{const d=new Date(datePick.value);renderTasks(d);renderWeek(d);});
 clearBtn.addEventListener("click",()=>{
   const d=new Date(datePick.value);
   const arr=loadTasks(d).filter(t=>!t.done);
@@ -139,8 +154,46 @@ importFile.addEventListener("change",e=>{
   };
   r.readAsText(file);
 });
+trashDay.addEventListener("click",()=>{
+  const d=new Date(datePick.value);
+  localStorage.removeItem(KEY(fmt(d)));
+  renderTasks(d);
+});
+
+/* ====== 주간 계획 저장 ====== */
+function mondayOf(date){
+  const d=new Date(date);
+  const day=(d.getDay()+6)%7; // 월요일 시작
+  d.setDate(d.getDate()-day);
+  return d;
+}
+function loadWeek(mon){return JSON.parse(localStorage.getItem("week."+fmt(mon))||'{}');}
+function saveWeek(mon,data){localStorage.setItem("week."+fmt(mon),JSON.stringify(data));}
+function renderWeek(date){
+  const mon=mondayOf(date);
+  const data=loadWeek(mon);
+  weekGrid.innerHTML="";
+  const days=["월","화","수","목","금","토","일"];
+  days.forEach((d,i)=>{
+    const box=document.createElement("div");
+    box.className="day";
+    const val=data[i]||"";
+    box.innerHTML=`<strong>${d}</strong><textarea>${val}</textarea>`;
+    const ta=box.querySelector("textarea");
+    ta.addEventListener("input",()=>{
+      const cur=loadWeek(mon);
+      cur[i]=ta.value;
+      saveWeek(mon,cur);
+    });
+    weekGrid.appendChild(box);
+  });
+}
+
+/* ====== 초기 실행 ====== */
 (function init(){
-  const t=new Date();datePick.value=fmt(t);renderTasks(t);
+  const t=new Date();datePick.value=fmt(t);
+  renderTasks(t);
+  renderWeek(t);
 })();
 </script>
 </body>
