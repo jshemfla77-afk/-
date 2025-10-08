@@ -3,197 +3,225 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>나만의 계획표 (통합판)</title>
+<title>나만의 계획표 (ALL-IN-ONE)</title>
 <style>
-  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif;background:#f6f7fb;color:#0f172a}
-  .wrap{max-width:960px;margin:28px auto;padding:16px}
-  .card{background:#fff;border:1px solid #e9ecf3;border-radius:16px;box-shadow:0 6px 16px rgba(20,32,60,.06);margin-bottom:20px;overflow:hidden}
-  h1{margin:0 0 8px;font-size:22px}
-  h2{margin:0 0 6px;font-size:18px}
-  .section{padding:16px}
-  .input-row{display:flex;gap:10px}
-  .input-row input{flex:1;padding:10px;border:1px solid #e9ecf3;border-radius:10px}
-  button{cursor:pointer;border:0;border-radius:10px;padding:8px 12px;background:#22c55e;color:#fff;font-weight:600}
-  button.btn-outline{background:#fff;color:#111;border:1px solid #e9ecf3}
-  button.btn-danger{background:#ef4444;color:#fff}
-  ul{list-style:none;padding:0;margin:12px 0 0}
-  li{padding:8px;border-bottom:1px solid #eee}
-  li.completed{text-decoration:line-through;color:#999}
-  .week{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-top:12px}
-  .week .day{border:1px solid #e9ecf3;border-radius:10px;padding:8px;background:#fafafa;display:flex;flex-direction:column}
-  .week .day textarea{flex:1;min-height:80px;margin-top:6px;border:1px solid #ddd;border-radius:6px;padding:6px}
+:root {
+  --bg:#f6f7fb; --card:#fff; --ink:#0f172a; --line:#e9ecf3;
+  --primary:#22c55e; --danger:#ef4444;
+}
+body {margin:0; font-family:sans-serif; background:var(--bg); color:var(--ink);}
+body.dark {--bg:#111827; --card:#1f2937; --ink:#f9fafb; --line:#374151;}
+.wrap {max-width:1100px; margin:20px auto; padding:10px;}
+.card {background:var(--card); border:1px solid var(--line); border-radius:12px; box-shadow:0 6px 16px rgba(0,0,0,.06); margin-bottom:20px; padding:16px;}
+h1,h2 {margin:0 0 8px;}
+.input-row {display:flex; gap:10px;}
+input,select,textarea {padding:8px; border:1px solid var(--line); border-radius:8px; background:#fff; width:100%;}
+button {cursor:pointer; border:0; border-radius:8px; padding:8px 12px; font-weight:600;}
+.btn {background:var(--primary); color:#fff;}
+.btn-outline {background:#fff; border:1px solid var(--line);}
+.btn-danger {background:var(--danger); color:#fff;}
+ul {list-style:none; padding:0; margin:10px 0;}
+li.task {display:flex; align-items:center; justify-content:space-between; padding:6px; border-bottom:1px solid var(--line);}
+li.task.completed .text {text-decoration:line-through; color:#888;}
+li.task .meta {font-size:12px; color:#666;}
+.star {cursor:pointer; margin-left:6px; color:#bbb;}
+.star.active {color:gold;}
+.tag {background:#eef; border-radius:6px; padding:2px 6px; margin-left:4px; font-size:11px;}
+/* 완료율 그래프 */
+.ring {--p:0; width:90px; height:90px; border-radius:50%;
+ background:conic-gradient(var(--primary) calc(var(--p)*1%),#ddd 0);}
+.ring::after {content:attr(data-label); display:flex; align-items:center; justify-content:center;
+ position:absolute; width:60px; height:60px; margin:15px; background:var(--card); border-radius:50%; font-weight:bold;}
+/* 주간계획 */
+.week {display:grid; grid-template-columns:repeat(7,1fr); gap:6px;}
+.day {background:var(--card); border:1px solid var(--line); border-radius:8px; padding:6px; display:flex; flex-direction:column;}
+.day textarea {flex:1; resize:vertical; min-height:60px;}
+/* 달력 */
+.calendar {display:grid; grid-template-columns:repeat(7,1fr); gap:4px;}
+.calendar div {border:1px solid var(--line); border-radius:6px; padding:6px; min-height:60px;}
+.calendar .today {background:#d1fae5;}
+.toggle {float:right;}
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <!-- 간단 To-Do 리스트 -->
   <div class="card">
-    <div class="section">
-      <h1>✨ 오늘의 목표 (간단)</h1>
-      <div class="input-row">
-        <input type="text" id="simpleTaskInput" placeholder="새로운 목표를 추가해보세요!">
-        <button id="simpleAddBtn">추가</button>
+    <h1>✨ 나만의 계획표 (ALL-IN-ONE)</h1>
+    <button id="darkToggle" class="btn-outline toggle">🌙 다크모드</button>
+  </div>
+
+  <!-- 간단 To-Do -->
+  <div class="card">
+    <h2>📝 간단 목표</h2>
+    <div class="input-row">
+      <input id="simpleTaskInput" placeholder="빠른 메모 추가" />
+      <button id="simpleAddBtn" class="btn">추가</button>
+    </div>
+    <ul id="simpleTaskList"></ul>
+  </div>
+
+  <!-- 오늘의 목표 + 완료율 -->
+  <div class="card">
+    <h2>📅 오늘의 목표</h2>
+    <div class="input-row">
+      <input type="date" id="datePick"/>
+      <button id="todayBtn" class="btn-outline">오늘</button>
+    </div>
+    <div class="input-row" style="margin-top:8px">
+      <input id="taskInput" placeholder="예) 운동 30분" />
+      <select id="repeatSel">
+        <option value="">반복 없음</option>
+        <option value="daily">매일</option>
+        <option value="weekly">매주</option>
+        <option value="monthly">매월</option>
+      </select>
+      <button id="addBtn" class="btn">추가</button>
+    </div>
+    <ul id="taskList"></ul>
+    <button id="clearDone" class="btn-outline">완료 모두 지우기</button>
+    <button id="exportBtn" class="btn-outline">내보내기</button>
+    <input type="file" id="importFile" />
+    <div style="margin-top:12px;display:flex;align-items:center;gap:20px;">
+      <div style="position:relative;">
+        <div id="ring" class="ring" data-label="0%"></div>
       </div>
-      <ul id="simpleTaskList">
-        <li>코딩 공부 1시간 하기</li>
-        <li class="completed">반려동물과 산책 다녀오기</li>
-      </ul>
+      <div id="summary">할 일을 추가해보세요.</div>
     </div>
   </div>
 
-  <!-- 고급 계획표 -->
+  <!-- 주간계획 -->
   <div class="card">
-    <div class="section">
-      <h1>📅 나만의 계획표 (고급)</h1>
-      <p style="color:#6b7280;font-size:13px;margin:0 0 12px">날짜별 저장 · 완료율 · 주간 메모</p>
+    <h2>🗓 주간 계획</h2>
+    <div id="weekGrid" class="week"></div>
+  </div>
 
-      <div class="input-row" style="margin-bottom:10px">
-        <input type="date" id="datePick">
-        <button id="todayBtn" class="btn-outline">오늘</button>
-      </div>
-
-      <h2>오늘의 목표</h2>
-      <div class="input-row">
-        <input type="text" id="taskInput" placeholder="예) 운동 30분, 책 읽기">
-        <button id="addBtn">추가</button>
-      </div>
-      <ul id="taskList"></ul>
-
-      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
-        <button id="clearDone" class="btn-outline">완료 모두 지우기</button>
-        <button id="exportBtn" class="btn-outline">내보내기(JSON)</button>
-        <input type="file" id="importFile" accept="application/json">
-      </div>
-
-      <h2 style="margin-top:20px">주간 계획</h2>
-      <div id="weekGrid" class="week"></div>
-    </div>
-    <div class="section" style="border-top:1px solid #eee;display:flex;justify-content:space-between;align-items:center">
-      <span style="color:#777;font-size:13px">저장 위치: 브라우저 LocalStorage</span>
-      <button id="trashDay" class="btn-danger">이 날짜 데이터 초기화</button>
-    </div>
+  <!-- 달력 뷰 -->
+  <div class="card">
+    <h2>📆 월간 달력</h2>
+    <div id="calendar" class="calendar"></div>
   </div>
 
 </div>
 
 <script>
-/* ====== 간단 To-Do ====== */
-const simpleInput=document.getElementById("simpleTaskInput");
-const simpleBtn=document.getElementById("simpleAddBtn");
-const simpleList=document.getElementById("simpleTaskList");
-simpleBtn.addEventListener("click",()=>{
-  if(simpleInput.value.trim()){
-    const li=document.createElement("li");
-    li.textContent=simpleInput.value;
-    li.addEventListener("click",()=>li.classList.toggle("completed"));
-    simpleList.appendChild(li);
-    simpleInput.value="";
-  }
-});
-
-/* ====== 고급 계획표 ====== */
+/* ===== Util ===== */
 const $=s=>document.querySelector(s);
-const taskInput=$("#taskInput");
-const addBtn=$("#addBtn");
-const taskList=$("#taskList");
-const datePick=$("#datePick");
-const todayBtn=$("#todayBtn");
-const clearBtn=$("#clearDone");
-const exportBtn=$("#exportBtn");
-const importFile=$("#importFile");
-const weekGrid=$("#weekGrid");
-const trashDay=$("#trashDay");
-
 const fmt=d=>d.toISOString().slice(0,10);
-const KEY=ymd=>`plan.${ymd}`;
-function loadTasks(date){return JSON.parse(localStorage.getItem(KEY(fmt(date)))||'[]')}
-function saveTasks(date,arr){localStorage.setItem(KEY(fmt(date)),JSON.stringify(arr))}
-function renderTasks(date){
-  const arr=loadTasks(date);taskList.innerHTML='';
-  arr.forEach((t,i)=>{
-    const li=document.createElement("li");
-    li.textContent=t.text;
-    if(t.done) li.classList.add("completed");
-    li.addEventListener("click",()=>{
-      arr[i].done=!arr[i].done;saveTasks(date,arr);renderTasks(date);
-    });
-    taskList.appendChild(li);
-  })
-}
-addBtn.addEventListener("click",()=>{
-  if(taskInput.value.trim()){
-    const d=new Date(datePick.value);
-    const arr=loadTasks(d);arr.push({text:taskInput.value,done:false});
-    saveTasks(d,arr);renderTasks(d);taskInput.value="";
-  }
-});
-todayBtn.addEventListener("click",()=>{
-  const t=new Date();datePick.value=fmt(t);renderTasks(t);renderWeek(t);
-});
-datePick.addEventListener("change",()=>{const d=new Date(datePick.value);renderTasks(d);renderWeek(d);});
-clearBtn.addEventListener("click",()=>{
-  const d=new Date(datePick.value);
-  const arr=loadTasks(d).filter(t=>!t.done);
-  saveTasks(d,arr);renderTasks(d);
-});
-exportBtn.addEventListener("click",()=>{
-  const d=new Date(datePick.value);
-  const arr=loadTasks(d);
-  const blob=new Blob([JSON.stringify(arr)],{type:"application/json"});
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);a.download=`plan_${fmt(d)}.json`;a.click();
-});
-importFile.addEventListener("change",e=>{
-  const file=e.target.files[0];if(!file)return;
-  const r=new FileReader();
-  r.onload=()=>{
-    const arr=JSON.parse(r.result);
-    const d=new Date(datePick.value);
-    saveTasks(d,arr);renderTasks(d);
-  };
-  r.readAsText(file);
-});
-trashDay.addEventListener("click",()=>{
-  const d=new Date(datePick.value);
-  localStorage.removeItem(KEY(fmt(d)));
-  renderTasks(d);
-});
+const KEY=ymd=>"plan."+ymd;
+function load(date){return JSON.parse(localStorage.getItem(KEY(fmt(date)))||"[]")}
+function save(date,arr){localStorage.setItem(KEY(fmt(date)),JSON.stringify(arr))}
 
-/* ====== 주간 계획 저장 ====== */
-function mondayOf(date){
-  const d=new Date(date);
-  const day=(d.getDay()+6)%7; // 월요일 시작
-  d.setDate(d.getDate()-day);
-  return d;
+/* ===== 간단 To-Do ===== */
+const sInput=$("#simpleTaskInput"), sBtn=$("#simpleAddBtn"), sList=$("#simpleTaskList");
+sBtn.onclick=()=>{ if(sInput.value.trim()){const li=document.createElement("li"); li.textContent=sInput.value;
+ li.onclick=()=>li.classList.toggle("completed"); sList.appendChild(li); sInput.value=""; } }
+
+/* ===== 오늘의 목표 ===== */
+const taskInput=$("#taskInput"), addBtn=$("#addBtn"), taskList=$("#taskList");
+const datePick=$("#datePick"), todayBtn=$("#todayBtn"), clearBtn=$("#clearDone");
+const exportBtn=$("#exportBtn"), importFile=$("#importFile"), ring=$("#ring"), summary=$("#summary");
+const repeatSel=$("#repeatSel");
+
+function render(date){
+  const arr=load(date); taskList.innerHTML="";
+  arr.sort((a,b)=> (b.star?1:0)-(a.star?1:0)); // 중요도 우선
+  arr.forEach((t,i)=>{
+    const li=document.createElement("li"); li.className="task"+(t.done?" completed":"");
+    li.innerHTML=`<span class="text">${t.text}</span>
+    <span class="meta">${t.repeat? "🔁"+t.repeat:""} ${t.tags?t.tags.join(" "):""}</span>
+    <span>
+      <span class="star ${t.star?"active":""}">★</span>
+      <button class="btn-outline">X</button>
+    </span>`;
+    li.querySelector(".text").onclick=()=>{arr[i].done=!arr[i].done; save(date,arr); render(date);}
+    li.querySelector("button").onclick=()=>{arr.splice(i,1); save(date,arr); render(date);}
+    li.querySelector(".star").onclick=()=>{arr[i].star=!arr[i].star; save(date,arr); render(date);}
+    taskList.appendChild(li);
+  });
+  updateStats(date);
 }
-function loadWeek(mon){return JSON.parse(localStorage.getItem("week."+fmt(mon))||'{}');}
+function addTask(date,text,repeat){
+  const tags=text.match(/#\S+/g)||[];
+  const arr=load(date); arr.push({text,done:false,repeat,tags,star:false});
+  save(date,arr); render(date);
+}
+function updateStats(date){
+  const arr=load(date), done=arr.filter(t=>t.done).length, total=arr.length;
+  const pct=total?Math.round(done/total*100):0;
+  ring.style.setProperty("--p",pct); ring.setAttribute("data-label",pct+"%");
+  summary.textContent=total?`총 ${total}개 중 ${done}개 완료`:"할 일을 추가해보세요.";
+}
+
+/* 반복 일정 적용 */
+function applyRepeats(){
+  const today=new Date();
+  for(let i=0;i<30;i++){ // 앞 30일
+    const d=new Date(); d.setDate(today.getDate()+i);
+    const arr=load(today).filter(t=>t.repeat);
+    arr.forEach(t=>{
+      let add=false;
+      if(t.repeat==="daily") add=true;
+      if(t.repeat==="weekly" && d.getDay()===today.getDay()) add=true;
+      if(t.repeat==="monthly" && d.getDate()===today.getDate()) add=true;
+      if(add){
+        const arr2=load(d);
+        if(!arr2.some(x=>x.text===t.text)) {arr2.push({...t,done:false}); save(d,arr2);}
+      }
+    });
+  }
+}
+
+/* 알림 */
+function notify(msg){ if(Notification.permission==="granted"){new Notification(msg);} }
+
+/* 주간 계획 */
+function mondayOf(date){const d=new Date(date); const day=(d.getDay()+6)%7; d.setDate(d.getDate()-day); return d;}
+function loadWeek(mon){return JSON.parse(localStorage.getItem("week."+fmt(mon))||"{}");}
 function saveWeek(mon,data){localStorage.setItem("week."+fmt(mon),JSON.stringify(data));}
 function renderWeek(date){
-  const mon=mondayOf(date);
-  const data=loadWeek(mon);
+  const mon=mondayOf(date); const data=loadWeek(mon); const days=["월","화","수","목","금","토","일"];
   weekGrid.innerHTML="";
-  const days=["월","화","수","목","금","토","일"];
   days.forEach((d,i)=>{
-    const box=document.createElement("div");
-    box.className="day";
-    const val=data[i]||"";
-    box.innerHTML=`<strong>${d}</strong><textarea>${val}</textarea>`;
-    const ta=box.querySelector("textarea");
-    ta.addEventListener("input",()=>{
-      const cur=loadWeek(mon);
-      cur[i]=ta.value;
-      saveWeek(mon,cur);
-    });
+    const box=document.createElement("div"); box.className="day";
+    const val=data[i]||""; box.innerHTML=`<strong>${d}</strong><textarea>${val}</textarea>`;
+    box.querySelector("textarea").oninput=e=>{const cur=loadWeek(mon); cur[i]=e.target.value; saveWeek(mon,cur);}
     weekGrid.appendChild(box);
   });
 }
 
-/* ====== 초기 실행 ====== */
+/* 달력 */
+function renderCalendar(date){
+  const cal=$("#calendar"); cal.innerHTML="";
+  const y=date.getFullYear(), m=date.getMonth(); const first=new Date(y,m,1), last=new Date(y,m+1,0);
+  let day=1-first.getDay(); for(let i=0;i<42;i++){
+    const d=new Date(y,m,day+i); const div=document.createElement("div");
+    div.textContent=d.getDate();
+    if(fmt(d)===fmt(new Date())) div.classList.add("today");
+    div.onclick=()=>{datePick.value=fmt(d); render(d); renderWeek(d);}
+    cal.appendChild(div);
+  }
+}
+
+/* 이벤트 */
+addBtn.onclick=()=>{if(taskInput.value.trim()){addTask(new Date(datePick.value),taskInput.value,repeatSel.value); taskInput.value="";}}
+todayBtn.onclick=()=>{const t=new Date(); datePick.value=fmt(t); render(t); renderWeek(t);}
+datePick.onchange=()=>{const d=new Date(datePick.value); render(d); renderWeek(d);}
+clearBtn.onclick=()=>{const d=new Date(datePick.value); save(d,load(d).filter(t=>!t.done)); render(d);}
+exportBtn.onclick=()=>{const d=new Date(datePick.value); const arr=load(d);
+ const blob=new Blob([JSON.stringify(arr)],{type:"application/json"}); const a=document.createElement("a");
+ a.href=URL.createObjectURL(blob); a.download=`plan_${fmt(d)}.json`; a.click();}
+importFile.onchange=e=>{const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=()=>{save(new Date(datePick.value),JSON.parse(r.result)); render(new Date(datePick.value));}; r.readAsText(f);}}
+
+/* 다크모드 */
+$("#darkToggle").onclick=()=>document.body.classList.toggle("dark");
+
+/* 초기 */
 (function init(){
-  const t=new Date();datePick.value=fmt(t);
-  renderTasks(t);
-  renderWeek(t);
+  if(Notification.permission!=="granted") Notification.requestPermission();
+  const t=new Date(); datePick.value=fmt(t);
+  render(t); renderWeek(t); renderCalendar(t);
+  applyRepeats();
 })();
 </script>
 </body>
