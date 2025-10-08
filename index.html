@@ -185,4 +185,331 @@
     }
   </script>
 </body>
-</html>
+</html><!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>나만의 계획표 – 확장판</title>
+<style>
+  :root{
+    --bg:#f6f7fb; --card:#ffffff; --muted:#778; --line:#e9ecf3;
+    --primary:#4caf50; --primary-2:#3c8f42; --danger:#e74c3c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif;background:var(--bg);color:#111}
+  .wrap{max-width:880px;margin:24px auto;padding:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 6px 16px rgba(20,32,60,.06)}
+  .row{display:flex;gap:10px;align-items:center}
+  h1{margin:0 0 8px;font-size:22px}
+  h2{margin:0 0 8px;font-size:18px}
+  .top{padding:14px 16px}
+  .pill{padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}
+  input[type="date"]{padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#fff}
+  button{cursor:pointer;border:0;border-radius:10px;padding:10px 14px;background:var(--primary);color:#fff}
+  button:disabled{opacity:.6;cursor:not-allowed}
+  .btn-outline{background:#fff;color:#222;border:1px solid var(--line)}
+  .btn-danger{background:var(--danger)}
+  .grid{display:grid;gap:12px}
+  .grid-2{grid-template-columns:1.2fr .8fr}
+  .section{padding:16px}
+  .muted{color:var(--muted);font-size:13px}
+  /* 할 일 */
+  .input-row input{flex:1;padding:10px;border:1px solid var(--line);border-radius:10px}
+  ul{list-style:none;margin:12px 0 0;padding:0}
+  li.task{display:flex;align-items:center;gap:10px;border-bottom:1px dashed var(--line);padding:10px 4px}
+  .task .text{flex:1}
+  .task.done .text{color:#8a8f98;text-decoration:line-through}
+  .task .small{font-size:12px;color:var(--muted)}
+  .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);padding:6px 10px;border-radius:999px;background:#fff;font-size:13px}
+  /* 완료율 */
+  .meter{display:flex;align-items:center;gap:12px}
+  .ring{--p:0;inline-size:78px;block-size:78px;border-radius:50%;
+        background:conic-gradient(var(--primary) calc(var(--p)*1%),#e6eaf2 0);position:relative}
+  .ring::after{content:attr(data-label);position:absolute;inset:10px;background:#fff;border-radius:50%;
+               display:flex;align-items:center;justify-content:center;font-weight:700}
+  /* 주간 */
+  .week{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+  .day{border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px;min-height:110px;display:flex;flex-direction:column}
+  .day .head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .day textarea{flex:1;resize:vertical;min-height:64px;border:1px solid var(--line);border-radius:8px;padding:8px;font-family:inherit}
+  .badge{font-size:11px;padding:2px 6px;border-radius:6px;background:#f1f5ff;border:1px solid #dfe7ff;color:#4962d1}
+  .kicker{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .footer{padding:14px 16px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line)}
+  @media (max-width:860px){.grid-2{grid-template-columns:1fr}.ring{inline-size:64px;block-size:64px}}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="top row" style="justify-content:space-between">
+        <div>
+          <h1>📅 나만의 계획표</h1>
+          <div class="muted">날짜별 할 일 저장 · 주간 메모 · 완료율 자동 계산</div>
+        </div>
+        <div class="row">
+          <input id="datePick" type="date"/>
+          <button id="todayBtn" class="btn-outline">오늘</button>
+        </div>
+      </div>
+
+      <div class="grid grid-2">
+        <!-- 좌: 오늘의 목표 -->
+        <section class="section">
+          <h2>✨ 오늘의 목표</h2>
+          <div class="row input-row" style="margin-top:6px">
+            <input id="taskInput" type="text" placeholder="예) 코딩 1시간, 운동 30분…" />
+            <button id="addBtn">추가</button>
+          </div>
+          <ul id="taskList"></ul>
+
+          <div class="kicker">
+            <button id="clearDone" class="btn-outline">완료 모두 지우기</button>
+            <button id="exportBtn" class="btn-outline">내보내기(JSON)</button>
+            <label class="chip" style="cursor:pointer">
+              <input id="importFile" type="file" accept="application/json" style="display:none" />
+              가져오기(JSON)
+            </label>
+          </div>
+        </section>
+
+        <!-- 우: 완료율 + 요약 -->
+        <section class="section">
+          <h2>✅ 완료율</h2>
+          <div class="row meter" style="margin-top:8px">
+            <div id="ring" class="ring" data-label="0%"></div>
+            <div class="muted" id="meterText">아직 할 일을 추가하세요.</div>
+          </div>
+          <div style="margin-top:16px">
+            <h2>🗒 요약</h2>
+            <div class="muted" id="summary">-</div>
+          </div>
+        </section>
+      </div>
+
+      <!-- 주간 계획 -->
+      <section class="section">
+        <h2>🗓 주간 계획</h2>
+        <div class="muted" id="weekTitle" style="margin:6px 0 10px">-</div>
+        <div class="week" id="weekGrid"></div>
+      </section>
+
+      <div class="footer">
+        <span class="muted">저장 위치: 브라우저 LocalStorage (기기별로 저장됨)</span>
+        <button id="trashDay" class="btn-danger">이 날짜 데이터 초기화</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ---------- 유틸 ---------- */
+const $ = (s, p=document)=>p.querySelector(s);
+const $$ = (s, p=document)=>[...p.querySelectorAll(s)];
+const fmt = d => d.toISOString().slice(0,10);                       // YYYY-MM-DD
+const clone = o => JSON.parse(JSON.stringify(o||{}));
+const KEY_TASKS = date => `planner.tasks.${date}`;
+const KEY_WEEK  = ymdMonday => `planner.week.${ymdMonday}`;
+
+function mondayOf(date){ // 선택 날짜가 속한 주의 '월요일'
+  const d = new Date(date); const day = (d.getDay()+6)%7; // Mon=0
+  d.setDate(d.getDate() - day);
+  d.setHours(0,0,0,0);
+  return d;
+}
+function endOfWeek(monday){ const d = new Date(monday); d.setDate(d.getDate()+6); return d; }
+
+/* ---------- 상태 ---------- */
+const datePick = $('#datePick');
+const todayBtn = $('#todayBtn');
+const addBtn = $('#addBtn');
+const taskInput = $('#taskInput');
+const taskList = $('#taskList');
+const clearDone = $('#clearDone');
+const ring = $('#ring');
+const meterText = $('#meterText');
+const summary = $('#summary');
+const weekTitle = $('#weekTitle');
+const weekGrid = $('#weekGrid');
+const trashDay = $('#trashDay');
+const exportBtn = $('#exportBtn');
+const importFile = $('#importFile');
+
+function setToday(){
+  const t = new Date(); t.setHours(0,0,0,0);
+  datePick.value = fmt(t);
+  loadForDate(t);
+}
+
+/* ---------- 로드/세이브 ---------- */
+function loadTasks(date){
+  return JSON.parse(localStorage.getItem(KEY_TASKS(fmt(date)))||'[]');
+}
+function saveTasks(date, arr){
+  localStorage.setItem(KEY_TASKS(fmt(date)), JSON.stringify(arr));
+}
+function loadWeek(monday){
+  const key = KEY_WEEK(fmt(monday));
+  const base = {Mon:'',Tue:'',Wed:'',Thu:'',Fri:'',Sat:'',Sun:''};
+  return Object.assign(base, JSON.parse(localStorage.getItem(key)||'{}'));
+}
+function saveWeek(monday, obj){
+  localStorage.setItem(KEY_WEEK(fmt(monday)), JSON.stringify(obj));
+}
+
+/* ---------- UI: 오늘의 목표 ---------- */
+function renderTasks(date){
+  const tasks = loadTasks(date);
+  taskList.innerHTML = '';
+  tasks.forEach((t,i)=>{
+    const li = document.createElement('li');
+    li.className = 'task'+(t.done?' done':'');
+    li.innerHTML = `
+      <input type="checkbox" ${t.done?'checked':''} aria-label="완료"/>
+      <div class="text">${escapeHtml(t.text)}</div>
+      <div class="row">
+        <button class="btn-outline small" data-act="edit">수정</button>
+        <button class="btn-outline small" data-act="del">삭제</button>
+      </div>
+    `;
+    li.querySelector('input').addEventListener('change', e=>{
+      tasks[i].done = e.target.checked; saveTasks(date, tasks); updateMeter(date); updateSummary(date); li.classList.toggle('done', e.target.checked);
+    });
+    li.querySelector('[data-act="del"]').addEventListener('click', ()=>{
+      tasks.splice(i,1); saveTasks(date, tasks); renderTasks(date); updateMeter(date); updateSummary(date);
+    });
+    li.querySelector('[data-act="edit"]').addEventListener('click', ()=>{
+      const nt = prompt('내용 수정', tasks[i].text);
+      if(nt!=null){ tasks[i].text = nt.trim(); saveTasks(date, tasks); renderTasks(date); updateSummary(date); }
+    });
+    taskList.appendChild(li);
+  });
+}
+function addTask(date, text){
+  const tasks = loadTasks(date);
+  tasks.push({text, done:false, ts:Date.now()});
+  saveTasks(date, tasks);
+  renderTasks(date); updateMeter(date); updateSummary(date);
+}
+function updateMeter(date){
+  const tasks = loadTasks(date);
+  const total = tasks.length, done = tasks.filter(t=>t.done).length;
+  const pct = total? Math.round(done/total*100) : 0;
+  ring.style.setProperty('--p', pct);
+  ring.setAttribute('data-label', pct+'%');
+  meterText.textContent = total? `총 ${total}개 중 ${done}개 완료` : '아직 할 일을 추가하세요.';
+}
+function updateSummary(date){
+  const tasks = loadTasks(date);
+  if(!tasks.length){ summary.textContent = '-'; return; }
+  const todo = tasks.filter(t=>!t.done).slice(0,3).map(t=>'• '+t.text);
+  summary.textContent = todo.length? todo.join(' / ') : '모든 일을 완료했습니다 🎉';
+}
+function clearDoneTasks(date){
+  const left = loadTasks(date).filter(t=>!t.done);
+  saveTasks(date, left);
+  renderTasks(date); updateMeter(date); updateSummary(date);
+}
+
+/* ---------- UI: 주간 계획 ---------- */
+function renderWeek(date){
+  const mon = mondayOf(date);
+  const sun = endOfWeek(mon);
+  weekTitle.textContent = `${fmt(mon)} (월) ~ ${fmt(sun)} (일)`;
+  const data = loadWeek(mon);
+  const names = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const kor = ['월','화','수','목','금','토','일'];
+  weekGrid.innerHTML = '';
+  names.forEach((n,idx)=>{
+    const box = document.createElement('div'); box.className='day';
+    box.innerHTML = `
+      <div class="head">
+        <strong>${kor[idx]}</strong>
+        <span class="badge">${data[n].trim()? '메모있음':'비어있음'}</span>
+      </div>
+      <textarea placeholder="이 날의 메모를 적어보세요.">${escapeHtml(data[n])}</textarea>
+    `;
+    const ta = box.querySelector('textarea');
+    ta.addEventListener('input', debounce(()=>{
+      const d = loadWeek(mon); d[n]=ta.value; saveWeek(mon, d);
+      box.querySelector('.badge').textContent = ta.value.trim()? '메모있음':'비어있음';
+    }, 300));
+    weekGrid.appendChild(box);
+  });
+}
+
+/* ---------- 날짜 전환 ---------- */
+function loadForDate(date){
+  renderTasks(date);
+  updateMeter(date);
+  updateSummary(date);
+  renderWeek(date);
+}
+
+/* ---------- 내보내기/가져오기 ---------- */
+function exportAll(){
+  // 선택 날짜의 일일 + 해당 주간까지 한 번에
+  const d = new Date(datePick.value);
+  const mon = mondayOf(d);
+  const payload = {
+    version:1,
+    date: fmt(d),
+    tasks: loadTasks(d),
+    weekStart: fmt(mon),
+    week: loadWeek(mon)
+  };
+  const blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `planner_${fmt(d)}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function importAll(file){
+  const fr = new FileReader();
+  fr.onload = () => {
+    try{
+      const data = JSON.parse(fr.result);
+      if(data.tasks && Array.isArray(data.tasks)) saveTasks(new Date(data.date||datePick.value), data.tasks);
+      if(data.week && data.weekStart) saveWeek(new Date(data.weekStart), data.week);
+      loadForDate(new Date(datePick.value));
+      alert('가져오기 완료');
+    }catch(e){ alert('가져오기 실패: JSON 형식 오류'); }
+  };
+  fr.readAsText(file, 'utf-8');
+}
+
+/* ---------- helpers ---------- */
+function escapeHtml(s=''){ return s.replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+function debounce(fn, ms){ let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), ms); }; }
+
+/* ---------- 이벤트 바인딩 ---------- */
+todayBtn.addEventListener('click', setToday);
+datePick.addEventListener('change', e=> loadForDate(new Date(e.target.value)));
+addBtn.addEventListener('click', ()=>{
+  const v = taskInput.value.trim(); if(!v) return;
+  addTask(new Date(datePick.value), v); taskInput.value='';
+});
+taskInput.addEventListener('keydown', e=>{ if(e.key==='Enter'){ addBtn.click(); } });
+clearDone.addEventListener('click', ()=> clearDoneTasks(new Date(datePick.value)));
+trashDay.addEventListener('click', ()=>{
+  const d = new Date(datePick.value);
+  if(confirm(`${fmt(d)} 데이터를 모두 지울까요? (할 일)`)){
+    localStorage.removeItem(KEY_TASKS(fmt(d)));
+    renderTasks(d); updateMeter(d); updateSummary(d);
+  }
+});
+exportBtn.addEventListener('click', exportAll);
+importFile.addEventListener('change', e=>{
+  const f = e.target.files[0]; if(f) importAll(f);
+  e.target.value='';
+});
+
+/* ---------- 초기화 ---------- */
+(function init(){
+  const t = new Date(); t.setHours(0,0,0,0);
+  datePick.value = fmt(t);
+  loadForDate(t);
+})();
+</script>
+</body>
+</html
