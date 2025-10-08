@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>나만의 계획표</title>
+  <style>
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: #f4f6f9;
+      margin: 0;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: 40px auto;
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    h1, h2 {
+      text-align: center;
+      margin-bottom: 15px;
+    }
+
+    input, button {
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+    }
+
+    #addTaskBtn {
+      background: #4CAF50;
+      color: white;
+      cursor: pointer;
+    }
+
+    #addTaskBtn:hover {
+      background: #45a049;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .task-item {
+      padding: 8px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .task-item.completed {
+      text-decoration: line-through;
+      color: gray;
+    }
+
+    .week-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .day {
+      padding: 10px;
+      background: #eef3f9;
+      border-radius: 8px;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .day:hover {
+      background: #dbe9ff;
+    }
+
+    .delete-btn {
+      background: none;
+      border: none;
+      color: red;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📅 나만의 계획표</h1>
+
+    <!-- 오늘의 목표 -->
+    <section class="today">
+      <h2>✨ 오늘의 목표</h2>
+      <input type="text" id="taskInput" placeholder="오늘의 목표를 입력하세요">
+      <button id="addTaskBtn">추가</button>
+      <ul id="taskList"></ul>
+    </section>
+
+    <!-- 주간 계획표 -->
+    <section class="weekly">
+      <h2>🗓 주간 계획</h2>
+      <div class="week-grid">
+        <div class="day" data-day="월">월</div>
+        <div class="day" data-day="화">화</div>
+        <div class="day" data-day="수">수</div>
+        <div class="day" data-day="목">목</div>
+        <div class="day" data-day="금">금</div>
+        <div class="day" data-day="토">토</div>
+        <div class="day" data-day="일">일</div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const taskInput = document.getElementById("taskInput");
+    const addTaskBtn = document.getElementById("addTaskBtn");
+    const taskList = document.getElementById("taskList");
+
+    // localStorage에서 데이터 불러오기
+    document.addEventListener("DOMContentLoaded", loadTasks);
+
+    addTaskBtn.addEventListener("click", addTask);
+    taskInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") addTask();
+    });
+
+    function addTask() {
+      const text = taskInput.value.trim();
+      if (!text) return;
+
+      const li = document.createElement("li");
+      li.className = "task-item";
+      li.innerHTML = `<span>${text}</span> <button class="delete-btn">❌</button>`;
+      
+      // 완료 처리
+      li.querySelector("span").addEventListener("click", () => {
+        li.classList.toggle("completed");
+        saveTasks();
+      });
+
+      // 삭제 처리
+      li.querySelector(".delete-btn").addEventListener("click", () => {
+        li.remove();
+        saveTasks();
+      });
+
+      taskList.appendChild(li);
+      taskInput.value = "";
+      saveTasks();
+    }
+
+    function saveTasks() {
+      const tasks = [];
+      document.querySelectorAll(".task-item").forEach((li) => {
+        tasks.push({
+          text: li.querySelector("span").innerText,
+          completed: li.classList.contains("completed")
+        });
+      });
+      localStorage.setItem("tasks", JSON.stringify(tasks));
+    }
+
+    function loadTasks() {
+      const tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+      tasks.forEach((t) => {
+        const li = document.createElement("li");
+        li.className = "task-item" + (t.completed ? " completed" : "");
+        li.innerHTML = `<span>${t.text}</span> <button class="delete-btn">❌</button>`;
+        
+        li.querySelector("span").addEventListener("click", () => {
+          li.classList.toggle("completed");
+          saveTasks();
+        });
+
+        li.querySelector(".delete-btn").addEventListener("click", () => {
+          li.remove();
+          saveTasks();
+        });
+
+        taskList.appendChild(li);
+      });
+    }
+  </script>
+</body>
+</html>
