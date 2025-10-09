@@ -1,437 +1,1 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>나만의 계획표 – ALL FEATURES</title>
-
-<!-- PWA -->
-<link rel="manifest" href="./manifest.webmanifest">
-<meta name="theme-color" content="#22c55e">
-
-<!-- Chart.js (통계 그래프) -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-
-<style>
-:root{
-  --bg:#f6f7fb; --card:#fff; --ink:#0f172a; --line:#e5e7eb; --muted:#6b7280;
-  --primary:#22c55e; --primary-2:#16a34a; --danger:#ef4444;
-}
-/* === 테마 (추가 테마 3종) === */
-body.theme-default{--bg:#f6f7fb; --card:#fff; --ink:#0f172a; --line:#e5e7eb; --muted:#6b7280; --primary:#22c55e; --primary-2:#16a34a}
-body.theme-mint{--bg:#edfdf6; --card:#ffffff; --ink:#0b3b2e; --line:#c9efe1; --muted:#4b7a6b; --primary:#10b981; --primary-2:#059669}
-body.theme-lavender{--bg:#f5f2ff; --card:#ffffff; --ink:#2e1b4b; --line:#e3dcff; --muted:#6b5a8e; --primary:#7c3aed; --primary-2:#6d28d9}
-body.theme-sunset{--bg:#fff7ed; --card:#ffffff; --ink:#3b1d0f; --line:#ffe2c6; --muted:#8a5d44; --primary:#f97316; --primary-2:#ea580c}
-
-*{box-sizing:border-box}
-html,body{height:100%}
-body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink)}
-body.dark{filter:none} /* 다크모드는 테마 선택 대신 OS/버튼 토글로 유지하려면 여기에 추가해도 됨 */
-.wrap{max-width:1100px;margin:0 auto;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom,0))}
-.card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 8px 28px rgba(2,6,23,.06);margin-bottom:16px;padding:16px}
-h1,h2{margin:0 0 .6rem}
-.muted{color:var(--muted)}
-button{cursor:pointer;border:0;border-radius:12px;padding:12px 14px;font-weight:700;min-height:44px}
-.btn{background:var(--primary);color:#fff}.btn:hover{background:var(--primary-2)}
-.btn-outline{background:transparent;border:1px solid var(--line);color:var(--ink)}
-.btn-danger{background:var(--danger);color:#fff}
-.icon-btn{padding:10px 12px;min-width:44px}
-input,select,textarea{padding:12px;border:1px solid var(--line);border-radius:12px;background:#fff;color:inherit;min-height:44px}
-.input-row{display:flex;gap:10px;flex-wrap:wrap}.input-row>*{flex:1 1 180px}
-ul{list-style:none;padding:0;margin:12px 0 0}
-li.task{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 6px;border-bottom:1px dashed var(--line)}
-li.task .text{flex:1;line-height:1.45}
-li.task.completed .text{text-decoration:line-through;color:#9aa3ad}
-li.task .meta{font-size:12px;color:var(--muted)}
-.star{cursor:pointer;margin-left:6px;color:#bdbdbd;font-size:18px}.star.active{color:gold}
-/* 완료율 */
-.ring-wrap{position:relative;width:96px;height:96px}
-.ring{--p:0;width:96px;height:96px;border-radius:50%;background:conic-gradient(var(--primary) calc(var(--p)*1%),#d1d5db 0)}
-.ring::after{content:attr(data-label);position:absolute;inset:14px;border-radius:50%;background:var(--card);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px}
-/* 주간/달력 가로 스크롤 */
-.h-scroll{overflow:auto;-webkit-overflow-scrolling:touch}
-.week{display:grid;grid-template-columns:repeat(7,minmax(160px,1fr));gap:8px;min-width:1120px}
-.day{border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--card);display:flex;flex-direction:column;min-height:140px}
-.day textarea{flex:1;resize:vertical;min-height:84px}
-.calendar{display:grid;grid-template-columns:repeat(7,minmax(120px,1fr));gap:6px;min-width:840px}
-.calendar .cell{border:1px solid var(--line);border-radius:10px;padding:10px;min-height:90px}
-.calendar .today{outline:2px solid var(--primary);outline-offset:-2px;background:rgba(34,197,94,.12)}
-.header-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.badge{font-size:12px;border:1px solid var(--line);padding:6px 10px;border-radius:10px;background:#fff}
-/* 모달 */
-.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.35);z-index:10}
-.modal.open{display:flex}
-.modal .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;max-width:720px;width:min(94vw,720px);padding:16px}
-@media (max-width:520px){.input-row>*{flex:1 1 100%}.icon-btn{width:100%}}
-</style>
-</head>
-<body class="theme-default">
-<div class="wrap">
-
-  <!-- 헤더 -->
-  <div class="card">
-    <div class="header-row">
-      <div>
-        <h1>✨ 나만의 계획표 (ALL-IN-ONE)</h1>
-        <div class="muted">빠른 메모 · 날짜별 할 일 · 완료율 · 주간 메모 · 달력 · 반복 · 알림 · 테마 · AI 요약</div>
-      </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <select id="themeSel" class="btn-outline" style="min-width:160px">
-          <option value="theme-default">테마: 기본</option>
-          <option value="theme-mint">테마: 민트</option>
-          <option value="theme-lavender">테마: 라벤더</option>
-          <option value="theme-sunset">테마: 선셋</option>
-        </select>
-        <button id="installBtn" class="btn-outline icon-btn" style="display:none">📲 설치</button>
-        <button id="settingsBtn" class="btn-outline icon-btn">⚙️ 설정</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 간단 To-Do -->
-  <div class="card">
-    <div class="header-row"><h2>📝 간단 목표</h2><span class="muted">탭/클릭으로 완료</span></div>
-    <div class="input-row">
-      <input id="simpleTaskInput" placeholder="빠른 메모 추가" />
-      <button id="simpleAddBtn" class="btn">추가</button>
-    </div>
-    <ul id="simpleTaskList"></ul>
-  </div>
-
-  <!-- 오늘의 목표 + 필터 + 알림시간 -->
-  <div class="card">
-    <div class="header-row">
-      <h2>📅 오늘의 목표</h2>
-      <div class="input-row" style="flex:0 0 auto;gap:8px">
-        <input type="date" id="datePick" style="min-width:170px">
-        <button id="todayBtn" class="btn-outline">오늘</button>
-        <select id="tagFilter" class="btn-outline" style="min-width:160px">
-          <option value="">태그 필터: 전체</option>
-        </select>
-        <input type="time" id="dailyNotifyAt" style="min-width:130px" title="매일 알림 시각">
-        <button id="notifySave" class="btn-outline">🔔 알림시각 저장</button>
-      </div>
-    </div>
-
-    <div class="input-row" style="margin-top:8px">
-      <input id="taskInput" placeholder="예) 운동 30분  #건강  (⭐은 항목의 별을 눌러 중요 표시)" />
-      <select id="repeatSel" title="반복">
-        <option value="">반복 없음</option>
-        <option value="daily">매일</option>
-        <option value="weekly">매주</option>
-        <option value="monthly">매월</option>
-      </select>
-      <button id="addBtn" class="btn">추가</button>
-    </div>
-
-    <ul id="taskList"></ul>
-
-    <div class="input-row" style="margin-top:8px">
-      <button id="clearDone" class="btn-outline">완료 모두 지우기</button>
-      <button id="exportBtn" class="btn-outline">내보내기(JSON)</button>
-      <input type="file" id="importFile" accept="application/json" />
-      <button id="aiBtn" class="btn-outline">🤖 요약/동기부여</button>
-    </div>
-
-    <div style="margin-top:12px;display:flex;gap:16px;align-items:center;flex-wrap:wrap">
-      <div class="ring-wrap"><div id="ring" class="ring" data-label="0%"></div></div>
-      <div id="summary" class="muted">할 일을 추가해보세요.</div>
-    </div>
-  </div>
-
-  <!-- 주간 계획 -->
-  <div class="card">
-    <div class="header-row">
-      <h2>🗓 주간 계획</h2>
-      <div class="muted" id="weekTitle"></div>
-    </div>
-    <div class="h-scroll"><div id="weekGrid" class="week"></div></div>
-  </div>
-
-  <!-- 월간 달력 + 통계 -->
-  <div class="card">
-    <h2>📆 월간 달력 & 📊 통계</h2>
-    <div class="h-scroll"><div id="calendar" class="calendar" style="margin-bottom:12px"></div></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      <canvas id="chartWeek" height="140"></canvas>
-      <canvas id="chartMonth" height="140"></canvas>
-    </div>
-  </div>
-</div>
-
-<!-- 설정 모달(Drive/AI/API 키) -->
-<div id="settingsModal" class="modal">
-  <div class="panel">
-    <div class="header-row">
-      <h3>⚙️ 설정</h3>
-      <button id="closeSettings" class="btn-outline icon-btn">닫기</button>
-    </div>
-    <div style="display:grid;gap:12px;margin-top:8px">
-      <div class="card" style="margin:0">
-        <h4>☁️ Google Drive 백업(선택)</h4>
-        <div class="muted">* 완전 클라이언트 방식. 아래 정보가 비어 있으면 버튼이 비활성화됩니다.</div>
-        <div class="input-row" style="margin-top:8px">
-          <input id="gapiKey" placeholder="Google API Key" />
-          <input id="gclientId" placeholder="Google OAuth Client ID" />
-        </div>
-        <div class="input-row">
-          <button id="gLogin" class="btn-outline">Google 로그인</button>
-          <button id="gBackup" class="btn-outline" disabled>Drive에 백업</button>
-          <button id="gRestore" class="btn-outline" disabled>Drive에서 불러오기</button>
-        </div>
-        <div class="muted" id="gStatus">상태: 미설정</div>
-      </div>
-
-      <div class="card" style="margin:0">
-        <h4>🤖 AI 요약/동기부여 (선택)</h4>
-        <div class="muted">OpenAI API Key를 저장하면 브라우저에서 직접 호출합니다(서버 없음).</div>
-        <div class="input-row" style="margin-top:8px">
-          <input id="openaiKey" placeholder="OpenAI API Key (sk-...)" />
-          <button id="saveOpenAI" class="btn">저장</button>
-          <button id="clearOpenAI" class="btn-outline">삭제</button>
-        </div>
-        <div class="muted">저장된 키는 이 브라우저의 LocalStorage에만 보관됩니다.</div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
-/* ========== 공통 유틸/상태 ========== */
-const $=s=>document.querySelector(s);
-const fmt=d=>d.toISOString().slice(0,10);
-const KEY=ymd=>"plan."+ymd;
-const THEMES=['theme-default','theme-mint','theme-lavender','theme-sunset'];
-const tagify=t=> (t.match(/#\S+/g)||[]);
-function esc(s=''){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
-
-/* ========== 간단 메모 ========== */
-$("#simpleAddBtn").onclick=()=>{const i=$("#simpleTaskInput"); if(!i.value.trim())return; const li=document.createElement('li'); li.textContent=i.value.trim(); li.onclick=()=>li.classList.toggle('completed'); $("#simpleTaskList").appendChild(li); i.value=''; i.focus();};
-
-/* ========== 데이터 IO ========== */
-function load(date){return JSON.parse(localStorage.getItem(KEY(fmt(date)))||'[]')}
-function save(date,arr){localStorage.setItem(KEY(fmt(date)),JSON.stringify(arr))}
-
-/* ========== 오늘의 목표 렌더 ========== */
-const taskList=$("#taskList"), ring=$("#ring"), summary=$("#summary"), tagFilter=$("#tagFilter");
-function render(date){
-  let arr=load(date);
-  // 태그 필터
-  const f=tagFilter.value;
-  if(f){arr=arr.filter(t=>(t.tags||[]).includes(f))}
-  // ⭐ 우선, 완료 하단
-  arr.sort((a,b)=> (b.star?1:0)-(a.star?1:0) || (a.done?1:0)-(b.done?1:0));
-  taskList.innerHTML='';
-  // 태그 목록 업데이트
-  const all=Array.from(new Set(load(date).flatMap(t=>t.tags||[]))).sort();
-  tagFilter.innerHTML='<option value="">태그 필터: 전체</option>'+all.map(t=>`<option value="${t}">${t}</option>`).join('');
-  arr.forEach((t,i)=>{
-    const li=document.createElement('li'); li.className='task'+(t.done?' completed':'');
-    const tags=(t.tags||[]).map(x=>`<span class="badge">${esc(x)}</span>`).join(' ');
-    li.innerHTML=`<div class="text">${esc(t.text)}</div>
-      <div class="meta">${t.repeat? '🔁 '+t.repeat:''} ${tags}
-        <span class="star ${t.star?'active':''}" title="중요">★</span>
-        <button class="btn-outline icon-btn" title="삭제">삭제</button>
-      </div>`;
-    li.querySelector('.text').onclick=()=>{const a=load(date); a[i].done=!a[i].done; save(date,a); render(date); updateStats(date);};
-    li.querySelector('.star').onclick=()=>{const a=load(date); a[i].star=!a[i].star; save(date,a); render(date);};
-    li.querySelector('button').onclick=()=>{const a=load(date); a.splice(i,1); save(date,a); render(date); updateStats(date);};
-    taskList.appendChild(li);
-  });
-}
-/* 완료율 */
-function updateStats(date){
-  const arr=load(date), done=arr.filter(t=>t.done).length, total=arr.length;
-  const pct= total? Math.round(done/total*100):0;
-  ring.style.setProperty('--p',pct); ring.setAttribute('data-label',pct+'%');
-  summary.textContent = total? `총 ${total}개 중 ${done}개 완료`:'할 일을 추가해보세요.';
-}
-
-/* ========== 추가/반복/자동 이월 ========== */
-const datePick=$("#datePick"), repeatSel=$("#repeatSel"), taskInput=$("#taskInput");
-function addTask(date,text,repeat){
-  const arr=load(date); arr.push({text,done:false,repeat,tags:tagify(text),star:false}); save(date,arr); render(date); updateStats(date);
-}
-$("#addBtn").onclick=()=>{const t=taskInput.value.trim(); if(!t)return; const d=new Date(datePick.value); addTask(d,t,repeatSel.value); applyRepeatsFrom(d); taskInput.value=''; taskInput.focus();};
-$("#taskInput").addEventListener('keydown',e=>{if(e.key==='Enter') $("#addBtn").click();});
-
-/* 반복 생성: 기준일부터 앞 30일 생성 */
-function applyRepeatsFrom(date){
-  const base=load(date); const today=new Date(date);
-  for(let i=1;i<=30;i++){
-    const d=new Date(today); d.setDate(today.getDate()+i);
-    const next=load(d);
-    base.filter(t=>t.repeat).forEach(t=>{
-      let doit=false;
-      if(t.repeat==='daily') doit=true;
-      if(t.repeat==='weekly' && d.getDay()===today.getDay()) doit=true;
-      if(t.repeat==='monthly' && d.getDate()===today.getDate()) doit=true;
-      if(doit && !next.some(x=>x.text===t.text && x.repeat===t.repeat)){ next.push({...t,done:false}); save(d,next); }
-    });
-  }
-}
-
-/* 자동 이월: 어제 미완료 → 오늘로 이동 */
-function rollover(){
-  const today=new Date(); today.setHours(0,0,0,0);
-  const yesterday=new Date(today); yesterday.setDate(today.getDate()-1);
-  const y=load(yesterday), t=load(today);
-  const carry=y.filter(it=>!it.done);
-  if(carry.length){
-    const merged=[...t];
-    carry.forEach(c=>{ if(!merged.some(x=>x.text===c.text)) merged.push({...c,done:false});});
-    save(today,merged);
-  }
-}
-
-/* ========== 주간 계획 ========== */
-const weekGrid=$("#weekGrid"), weekTitle=$("#weekTitle");
-function mondayOf(date){const d=new Date(date); const day=(d.getDay()+6)%7; d.setDate(d.getDate()-day); d.setHours(0,0,0,0); return d;}
-function endOfWeek(mon){const d=new Date(mon); d.setDate(d.getDate()+6); return d;}
-function lw(mon){return JSON.parse(localStorage.getItem('week.'+fmt(mon))||'{}')}
-function sw(mon,obj){localStorage.setItem('week.'+fmt(mon), JSON.stringify(obj))}
-function renderWeek(date){
-  const mon=mondayOf(date), sun=endOfWeek(mon), data=Object.assign({0:'',1:'',2:'',3:'',4:'',5:'',6:''}, lw(mon));
-  weekTitle.textContent=`${fmt(mon)} (월) ~ ${fmt(sun)} (일)`;
-  weekGrid.innerHTML='';
-  '월화수목금토일'.split('').forEach((name,i)=>{
-    const box=document.createElement('div'); box.className='day';
-    box.innerHTML=`<strong>${name}</strong><textarea placeholder="${name} 계획">${esc(data[i])}</textarea>`;
-    const ta=box.querySelector('textarea'); let t; ta.oninput=e=>{clearTimeout(t); t=setTimeout(()=>{const cur=lw(mon); cur[i]=e.target.value; sw(mon,cur)},300);}
-    weekGrid.appendChild(box);
-  });
-}
-
-/* ========== 달력 ========== */
-const calendar=$("#calendar");
-function renderCalendar(date){
-  calendar.innerHTML=''; const y=date.getFullYear(), m=date.getMonth();
-  const first=new Date(y,m,1); let start=new Date(first); start.setDate(first.getDate()-((first.getDay()+6)%7));
-  for(let i=0;i<42;i++){
-    const d=new Date(start); d.setDate(start.getDate()+i);
-    const cell=document.createElement('div'); cell.className='cell'; if(fmt(d)===fmt(new Date())) cell.classList.add('today');
-    const preview=(load(d)||[]).slice(0,2).map(t=>esc(t.text)).join('<br>');
-    cell.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center">
-      <strong>${d.getDate()}</strong><button class="btn-outline icon-btn">보기</button></div>
-      <div class="muted" style="margin-top:6px;font-size:12px">${preview}</div>`;
-    cell.querySelector('button').onclick=()=>{datePick.value=fmt(d); render(d); updateStats(d); renderWeek(d);}
-    calendar.appendChild(cell);
-  }
-}
-
-/* ========== 통계 (Chart.js) ========== */
-let chartWeek, chartMonth;
-function statsWeek(date){
-  const mon=mondayOf(date); const days=[...Array(7)].map((_,i)=>{const d=new Date(mon); d.setDate(mon.getDate()+i); const arr=load(d); return arr.length? Math.round(arr.filter(t=>t.done).length/arr.length*100):0;});
-  if(chartWeek) chartWeek.destroy();
-  chartWeek=new Chart($("#chartWeek"), {type:'line', data:{labels:['월','화','수','목','금','토','일'], datasets:[{label:'주간 완료율(%)', data:days, tension:.3}]}, options:{scales:{y:{min:0,max:100}}}});
-}
-function statsMonth(date){
-  const y=date.getFullYear(), m=date.getMonth(), last=new Date(y,m+1,0).getDate();
-  const arr=[...Array(last)].map((_,day)=>{const d=new Date(y,m,day+1); const a=load(d); return a.length? Math.round(a.filter(t=>t.done).length/a.length*100):0;});
-  if(chartMonth) chartMonth.destroy();
-  chartMonth=new Chart($("#chartMonth"), {type:'bar', data:{labels:arr.map((_,i)=>i+1), datasets:[{label:'월간 완료율(%)', data:arr}]}, options:{scales:{y:{min:0,max:100}}}});
-}
-
-/* ========== 알림 스케줄러 ========== */
-function ensureNotif(){ if('Notification' in window && Notification.permission==='default') Notification.requestPermission(); }
-function scheduleDaily(){
-  const t=localStorage.getItem('planner.notifyAt'); if(!t) return;
-  ensureNotif();
-  // 간단 시간 스케줄: 페이지 열려 있는 동안 setTimeout으로 다음 알림 예약
-  const [hh,mm]=t.split(':').map(Number);
-  const now=new Date(), next=new Date(); next.setHours(hh,mm,0,0); if(next<=now) next.setDate(next.getDate()+1);
-  const ms=next-now;
-  setTimeout(()=>{ const today=new Date($("#datePick").value); const arr=load(today); const remain=arr.filter(x=>!x.done).map(x=>'• '+x.text).slice(0,5).join('\n')||'오늘 할 일이 없어요!'; if('Notification' in window && Notification.permission==='granted'){ new Notification('오늘의 계획', { body: remain }); } scheduleDaily(); }, ms);
-}
-$("#notifySave").onclick=()=>{ const v=$("#dailyNotifyAt").value; localStorage.setItem('planner.notifyAt', v||''); alert(v?'알림 시각 저장됨':'알림 해제됨'); scheduleDaily(); };
-
-/* ========== 파일 내보내기/불러오기/완료 정리 ========== */
-$("#clearDone").onclick=()=>{ const d=new Date(datePick.value); save(d, load(d).filter(t=>!t.done)); render(d); updateStats(d); };
-$("#exportBtn").onclick=()=>{ const d=new Date(datePick.value); const blob=new Blob([JSON.stringify(load(d),null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`plan_${fmt(d)}.json`; a.click(); };
-$("#importFile").onchange=e=>{ const f=e.target.files?.[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ try{ const d=new Date(datePick.value); save(d, JSON.parse(r.result)); render(d); updateStats(d);}catch{alert('JSON 형식 오류');} }; r.readAsText(f,'utf-8'); };
-
-/* ========== 테마 ========== */
-const themeSel=$("#themeSel"); themeSel.value=localStorage.getItem('planner.theme')||'theme-default'; document.body.className=themeSel.value;
-themeSel.onchange=()=>{ document.body.className=themeSel.value; localStorage.setItem('planner.theme', themeSel.value); };
-
-/* ========== AI 요약/동기부여(선택) ========== */
-const OPENAI_KEY_KEY='planner.openai.key';
-$("#saveOpenAI")?.addEventListener('click',()=>{localStorage.setItem(OPENAI_KEY_KEY, $("#openaiKey").value.trim()); alert('저장했습니다');});
-$("#clearOpenAI")?.addEventListener('click',()=>{localStorage.removeItem(OPENAI_KEY_KEY); $("#openaiKey").value=''; alert('삭제했습니다');});
-$("#aiBtn").onclick=async ()=>{
-  const key=localStorage.getItem(OPENAI_KEY_KEY);
-  const d=new Date(datePick.value); const arr=load(d);
-  const text = arr.length? arr.map((t,i)=>`${i+1}. ${t.text}${t.done?' (완료)':''}`).join('\n') : '할 일이 없습니다.';
-  if(!key){ // 키 없으면 로컬 모드(간단 문구)
-    const left = arr.filter(x=>!x.done).length;
-    alert(left? `🔥 오늘 ${left}개 남았어! 가장 작은 것부터 바로 하나 끝내자.` : '🎉 전부 완료! 가볍게 스트레칭 하자!');
-    return;
-  }
-  try{
-    // OpenAI Chat Completions (gpt-4o-mini 등) — 키가 있을 때만 실행
-    const res=await fetch('https://api.openai.com/v1/chat/completions',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
-      body:JSON.stringify({
-        model:'gpt-4o-mini',
-        messages:[
-          {role:'system',content:'너는 한국어 코치야. 오늘의 할 일을 간단히 요약하고 1~2줄 동기부여를 준다.'},
-          {role:'user',content:`오늘의 계획:\n${text}\n요약과 동기부여를 부탁해.`}
-        ],
-        temperature:0.7
-      })
-    });
-    const data=await res.json();
-    const msg=data.choices?.[0]?.message?.content || '요약을 생성하지 못했어요.';
-    alert(msg);
-  }catch(err){ console.error(err); alert('요약 호출 실패(키/네트워크 확인)'); }
-};
-
-/* ========== 설정 모달 + Drive(옵션) ========== */
-const modal=$("#settingsModal"), settingsBtn=$("#settingsBtn"), closeSettings=$("#closeSettings");
-settingsBtn.onclick=()=>{ $("#openaiKey").value=localStorage.getItem(OPENAI_KEY_KEY)||''; modal.classList.add('open'); renderDriveStatus(); };
-closeSettings.onclick=()=>modal.classList.remove('open');
-
-/* Google Drive: 완전 옵션. 키/클라ID 없으면 비활성화 상태. */
-const GAPI_KEY_KEY='planner.gapi.key', GCLIENT_ID_KEY='planner.gapi.client';
-const gStatus=$("#gStatus"), gapiKey=$("#gapiKey"), gclientId=$("#gclientId"), gLogin=$("#gLogin"), gBackup=$("#gBackup"), gRestore=$("#gRestore");
-function renderDriveStatus(){
-  gapiKey.value=localStorage.getItem(GAPI_KEY_KEY)||''; gclientId.value=localStorage.getItem(GCLIENT_ID_KEY)||'';
-  const ready=!!(gapiKey.value && gclientId.value);
-  gLogin.disabled=gBackup.disabled=gRestore.disabled=!ready;
-  gStatus.textContent='상태: '+(ready?'설정됨(로그인 필요)':'미설정');
-}
-[gapiKey,gclientId].forEach(el=>el.addEventListener('change',()=>{localStorage.setItem(el===gapiKey?GAPI_KEY_KEY:GCLIENT_ID_KEY, el.value.trim()); renderDriveStatus();}));
-
-// gapi 스킵: 버튼 누르면 가이드 표시(키 넣으면 구현 가능)
-gLogin.onclick=()=>alert('Google Drive는 클라이언트 키/클라이언트ID가 필요합니다.\n설정 저장 후 이 버튼을 다시 눌러 로그인 흐름을 구현하세요.\n(여기서는 안전/단순화를 위해 기본 가이드만 제공합니다)');
-gBackup.onclick=()=>alert('현재는 JSON 내보내기(다운로드)를 권장합니다.\nDrive 연결을 원하면 Google API 키/클라ID로 gapi를 초기화해 업로드하세요.');
-gRestore.onclick=()=>alert('Drive 불러오기도 동일합니다. (또는 JSON 불러오기 사용)');
-
-/* ========== PWA 설치 & SW 등록 ========== */
-let deferredPrompt=null;
-window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$("#installBtn").style.display='inline-block';});
-$("#installBtn").onclick=async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$("#installBtn").style.display='none';};
-if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js',{scope:'./'}).catch(console.error));}
-
-/* ========== 날짜 전환/초기화 ========== */
-function goToday(){const t=new Date();t.setHours(0,0,0,0);datePick.value=fmt(t);render(t);updateStats(t);renderWeek(t);renderCalendar(t);statsWeek(t);statsMonth(t);}
-$("#todayBtn").onclick=goToday;
-datePick.onchange=()=>{const d=new Date(datePick.value);render(d);updateStats(d);renderWeek(d);renderCalendar(d);statsWeek(d);statsMonth(d);}
-tagFilter.onchange=()=>{const d=new Date(datePick.value);render(d);}
-
-/* ========== 부팅 ========== */
-(function init(){
-  // 알림 시각 UI 세팅
-  $("#dailyNotifyAt").value = localStorage.getItem('planner.notifyAt') || '';
-  // 테마 적용은 위에서 처리됨
-  // 자동 이월 후 오늘 로드
-  rollover();
-  goToday();
-  // 알림 스케줄러 가동
-  scheduleDaily();
-})();
-</script>
-</body>
-</html>
+<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" /><title>나만의 계획표 – ALL FEATURES PLUS</title><!-- PWA --><link rel="manifest" href="./manifest.webmanifest"><meta name="theme-color" content="#22c55e"><!-- Chart.js (통계 그래프) --><script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script><style>:root{  --bg:#f6f7fb; --card:#fff; --ink:#0f172a; --line:#e5e7eb; --muted:#6b7280;  --primary:#22c55e; --primary-2:#16a34a; --danger:#ef4444;}/* 테마 */body.theme-default{--bg:#f6f7fb; --card:#fff; --ink:#0f172a; --line:#e5e7eb; --muted:#6b7280; --primary:#22c55e; --primary-2:#16a34a}body.theme-mint{--bg:#edfdf6; --card:#ffffff; --ink:#0b3b2e; --line:#c9efe1; --muted:#4b7a6b; --primary:#10b981; --primary-2:#059669}body.theme-lavender{--bg:#f5f2ff; --card:#ffffff; --ink:#2e1b4b; --line:#e3dcff; --muted:#6b5a8e; --primary:#7c3aed; --primary-2:#6d28d9}body.theme-sunset{--bg:#fff7ed; --card:#ffffff; --ink:#3b1d0f; --line:#ffe2c6; --muted:#8a5d44; --primary:#f97316; --primary-2:#ea580c}*{box-sizing:border-box}html,body{height:100%}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink)}.wrap{max-width:1100px;margin:0 auto;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom,0))}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 8px 28px rgba(2,6,23,.06);margin-bottom:16px;padding:16px}h1,h2{margin:0 0 .6rem}.muted{color:var(--muted)}button{cursor:pointer;border:0;border-radius:12px;padding:12px 14px;font-weight:700;min-height:44px}.btn{background:var(--primary);color:#fff}.btn:hover{background:var(--primary-2)}.btn-outline{background:transparent;border:1px solid var(--line);color:var(--ink)}.btn-danger{background:var(--danger);color:#fff}.icon-btn{padding:10px 12px;min-width:44px}input,select,textarea{padding:12px;border:1px solid var(--line);border-radius:12px;background:#fff;color:inherit;min-height:44px}.input-row{display:flex;gap:10px;flex-wrap:wrap}.input-row>*{flex:1 1 180px}ul{list-style:none;padding:0;margin:12px 0 0}li.task{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 6px;border-bottom:1px dashed var(--line)}li.task .text{flex:1;line-height:1.45}li.task.completed .text{text-decoration:line-through;color:#9aa3ad}li.task .meta{font-size:12px;color:var(--muted)}.star{cursor:pointer;margin-left:6px;color:#bdbdbd;font-size:18px}.star.active{color:gold}/* 완료율 */.ring-wrap{position:relative;width:96px;height:96px}.ring{--p:0;width:96px;height:96px;border-radius:50%;background:conic-gradient(var(--primary) calc(var(--p)*1%),#d1d5db 0)}.ring::after{content:attr(data-label);position:absolute;inset:14px;border-radius:50%;background:var(--card);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px}/* 주간/달력 가로 스크롤 */.h-scroll{overflow:auto;-webkit-overflow-scrolling:touch}.week{display:grid;grid-template-columns:repeat(7,minmax(160px,1fr));gap:8px;min-width:1120px}.day{border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--card);display:flex;flex-direction:column;min-height:140px}.day textarea{flex:1;resize:vertical;min-height:84px}.calendar{display:grid;grid-template-columns:repeat(7,minmax(120px,1fr));gap:6px;min-width:840px}.calendar .cell{border:1px solid var(--line);border-radius:10px;padding:10px;min-height:90px}.calendar .today{outline:2px solid var(--primary);outline-offset:-2px;background:rgba(34,197,94,.12)}.header-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.badge{font-size:12px;border:1px solid var(--line);padding:6px 10px;border-radius:10px;background:#fff}/* 모달 */.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.35);z-index:10}.modal.open{display:flex}.modal .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;max-width:720px;width:min(94vw,720px);padding:16px}@media (max-width:520px){.input-row>*{flex:1 1 100%}.icon-btn{width:100%}}</head><body class="theme-default"><div class="wrap">  <!-- 헤더 --><div class="card">    <div class="header-row">      <div>        <h1>✨ 나만의 계획표 (ALL-IN-ONE)</h1>        <div class="muted">빠른 메모 · 날짜별 할 일 · 완료율 · 주간 메모 · 달력 · 반복 · 알림 · 테마 · AI · 백업/복원 · 검색 · 포모도로</div>      </div>      <div style="display:flex;gap:8px;flex-wrap:wrap">        <select id="themeSel" class="btn-outline" style="min-width:160px">          <option value="theme-default">테마: 기본</option>          <option value="theme-mint">테마: 민트</option>          <option value="theme-lavender">테마: 라벤더</option>          <option value="theme-sunset">테마: 선셋</option>        </select>        <button id="installBtn" class="btn-outline icon-btn" style="display:none">📲 설치</button>        <button id="backupAllBtn" class="btn-outline icon-btn">🗄 전체 백업</button>        <button id="restoreAllBtn" class="btn-outline icon-btn">📥 전체 복원</button>        <button id="openSearchBtn" class="btn-outline icon-btn">🔎 검색 (⌘/Ctrl+K)</button>        <button id="settingsBtn" class="btn-outline icon-btn">⚙️ 설정</button>      </div>    </div>  </div>  <!-- 간단 To-Do --><div class="card">    <div class="header-row"><h2>📝 간단 목표</h2><span class="muted">탭/클릭으로 완료</span></div>    <div class="input-row">      <input id="simpleTaskInput" placeholder="빠른 메모 추가" />      <button id="simpleAddBtn" class="btn">추가</button>    </div>    <ul id="simpleTaskList"></ul>  </div>  <!-- 오늘의 목표 --><div class="card">    <div class="header-row">      <h2>📅 오늘의 목표</h2>      <div class="input-row" style="flex:0 0 auto;gap:8px">        <input type="date" id="datePick" style="min-width:170px">        <button id="todayBtn" class="btn-outline">오늘</button>        <select id="tagFilter" class="btn-outline" style="min-width:160px">          <option value="">태그 필터: 전체</option>        </select>        <input type="time" id="dailyNotifyAt" style="min-width:130px" title="매일 알림 시각">        <button id="notifySave" class="btn-outline">🔔 알림시각 저장</button>      </div>    </div>    <div class="input-row" style="margin-top:8px">      <input id="taskInput" placeholder="예) 운동 30분  #건강  (⭐은 항목의 별 클릭)" />      <select id="repeatSel" title="반복">        <option value="">반복 없음</option>        <option value="daily">매일</option>        <option value="weekly">매주</option>        <option value="monthly">매월</option>      </select>      <button id="addBtn" class="btn">추가</button>    </div>    <ul id="taskList"></ul>    <div class="input-row" style="margin-top:8px">      <button id="clearDone" class="btn-outline">완료 모두 지우기</button>      <button id="exportBtn" class="btn-outline">내보내기(JSON)</button>      <input type="file" id="importFile" accept="application/json" />      <button id="aiBtn" class="btn-outline">🤖 요약/동기부여</button>    </div>    <div style="margin-top:12px;display:flex;gap:16px;align-items:center;flex-wrap:wrap">      <div class="ring-wrap"><div id="ring" class="ring" data-label="0%"></div></div>      <div id="summary" class="muted">할 일을 추가해보세요.</div>    </div></div>  <!-- 주간 계획 --><div class="card">    <div class="header-row">      <h2>🗓 주간 계획</h2>      <div class="muted" id="weekTitle"></div>    </div>    <div class="h-scroll"><div id="weekGrid" class="week"></div></div>  </div>  <!-- 달력 + 통계 --><div class="card">    <h2>📆 월간 달력 & 📊 통계</h2>    <div class="h-scroll"><div id="calendar" class="calendar" style="margin-bottom:12px"></div></div>    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">      <canvas id="chartWeek" height="140"></canvas>      <canvas id="chartMonth" height="140"></canvas>    </div>  </div>  <!-- 포모도로 --><div class="card">    <div class="header-row">      <h2>⏱ 포모도로 타이머</h2>      <div class="muted">Space: 시작/정지, 세션/휴식 분 조절</div>    </div>    <div class="input-row">      <input type="number" id="focusMin" value="25" min="1" style="max-width:120px" />      <input type="number" id="breakMin" value="5"  min="1" style="max-width:120px" />      <button id="pomodoroStart" class="btn">시작/정지 (Space)</button>      <button id="pomodoroReset" class="btn-outline">리셋</button>    </div>    <div style="font-size:42px;font-weight:800;margin-top:8px" id="pomodoroDisp">25:00</div>    <div class="muted" id="pomodoroState">대기 중</div>  </div></div><!-- 검색 모달 --><div id="searchModal" class="modal">  <div class="panel">    <div class="header-row">      <h3>🔎 전역 검색</h3>      <button id="closeSearch" class="btn-outline icon-btn">닫기</button>    </div>    <div class="input-row" style="margin-top:8px">      <input id="searchInput" placeholder="키워드 또는 #태그 (모든 날짜 검색)" />    </div>    <ul id="searchResult"></ul>  </div></div><!-- 전체 백업 모달 --><div id="backupModal" class="modal">  <div class="panel">    <div class="header-row">      <h3>🗄 전체 백업/복원</h3>      <button id="closeBackup" class="btn-outline icon-btn">닫기</button>    </div>    <div class="input-row" style="margin-top:8px">      <button id="downloadAll" class="btn">백업 파일 다운로드</button>      <input type="file" id="uploadAll" accept="application/json" />    </div>    <div class="muted">* 모든 날짜의 계획(plan.*) + 주간 메모(week.*) 키를 합쳐 백업합니다.</div>  </div></div><!-- 설정 모달(Drive/AI) --><div id="settingsModal" class="modal">  <div class="panel">    <div class="header-row">      <h3>⚙️ 설정</h3>      <button id="closeSettings" class="btn-outline icon-btn">닫기</button>    </div>    <div style="display:grid;gap:12px;margin-top:8px">      <div class="card" style="margin:0">        <h4>☁️ Google Drive 백업(선택)</h4>        <div class="muted">키/클라이언트ID 없으면 비활성화. 기본은 JSON 백업/복원 사용을 권장합니다.</div>        <div class="input-row" style="margin-top:8px">          <input id="gapiKey" placeholder="Google API Key" />          <input id="gclientId" placeholder="Google OAuth Client ID" />        </div>        <div class="input-row">          <button id="gLogin" class="btn-outline">Google 로그인</button>          <button id="gBackup" class="btn-outline" disabled>Drive에 백업</button>          <button id="gRestore" class="btn-outline" disabled>Drive에서 불러오기</button>        </div>        <div class="muted" id="gStatus">상태: 미설정</div>      </div>      <div class="card" style="margin:0">        <h4>🤖 AI 요약/동기부여 (선택)</h4>        <div class="muted">OpenAI API Key를 저장하면 브라우저에서 직접 호출합니다.</div>        <div class="input-row" style="margin-top:8px">          <input id="openaiKey" placeholder="OpenAI API Key (sk-…)" />          <button id="saveOpenAI" class="btn">저장</button>          <button id="clearOpenAI" class="btn-outline">삭제</button>        </div>      </div>    </div></div></div><script>/* === 공통 === */const $=s=>document.querySelector(s);const fmt=d=>d.toISOString().slice(0,10);const KEY=ymd=>"plan."+ymd;const THEMES=['theme-default','theme-mint','theme-lavender','theme-sunset'];const tagify=t=> (t.match(/#\\S+/g)||[]);function esc(s=''){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}/* 간단 메모 */$("#simpleAddBtn").onclick=()=>{const i=$("#simpleTaskInput"); if(!i.value.trim())return; const li=document.createElement('li'); li.textContent=i.value.trim(); li.onclick=()=>li.classList.toggle('completed'); $("#simpleTaskList").appendChild(li); i.value=''; i.focus();};/* 데이터 IO */function load(date){return JSON.parse(localStorage.getItem(KEY(fmt(date)))||'[]')}function save(date,arr){localStorage.setItem(KEY(fmt(date)),JSON.stringify(arr))}/* 오늘의 목표 */const taskList=$("#taskList"), ring=$("#ring"), summary=$("#summary"), tagFilter=$("#tagFilter");function render(date){  let arr=load(date);  const f=tagFilter.value;  if(f){arr=arr.filter(t=>(t.tags||[]).includes(f))}  arr.sort((a,b)=> (b.star?1:0)-(a.star?1:0) || (a.done?1:0)-(b.done?1:0));  taskList.innerHTML='';  const all=Array.from(new Set(load(date).flatMap(t=>t.tags||[]))).sort();  tagFilter.innerHTML='<option value="">태그 필터: 전체</option>'+all.map(t=>`<option value="${t}">${t}</option>`).join('');  arr.forEach((t,i)=>{    const li=document.createElement('li'); li.className='task'+(t.done?' completed':'');    const tags=(t.tags||[]).map(x=>`<span class="badge">${esc(x)}</span>`).join(' ');    li.innerHTML=`<div class="text">${esc(t.text)}</div>      <div class="meta">${t.repeat? '🔁 '+t.repeat:''} ${tags}        <span class="star ${t.star?'active':''}" title="중요">★</span>        <button class="btn-outline icon-btn" title="삭제">삭제</button>      </div>`;    li.querySelector('.text').onclick=()=>{const a=load(date); a[i].done=!a[i].done; save(date,a); render(date); updateStats(date);};    li.querySelector('.star').onclick=()=>{const a=load(date); a[i].star=!a[i].star; save(date,a); render(date);};    li.querySelector('button').onclick=()=>{const a=load(date); a.splice(i,1); save(date,a); render(date); updateStats(date);};    taskList.appendChild(li);  });  /* Drag & Drop 정렬 */  let dragSrc;  taskList.querySelectorAll('li').forEach((li, idx)=>{    li.draggable = true;    li.addEventListener('dragstart', e=>{ dragSrc = idx; li.style.opacity=.5; });    li.addEventListener('dragend',   e=>{ li.style.opacity=1; });    li.addEventListener('dragover',  e=>{ e.preventDefault(); });    li.addEventListener('drop',      e=>{      const d = new Date(datePick.value);      const arr = load(d);      const tgt = [...taskList.children].indexOf(li);      if(dragSrc===tgt || dragSrc==null) return;      const [moved] = arr.splice(dragSrc,1);      arr.splice(tgt,0,moved);      save(d,arr); render(d); updateStats(d);    });  });}function updateStats(date){  const arr=load(date), done=arr.filter(t=>t.done).length, total=arr.length;  const pct= total? Math.round(done/total*100):0;  ring.style.setProperty('--p',pct); ring.setAttribute('data-label',pct+'%');  summary.textContent = total? `총 ${total}개 중 ${done}개 완료`:'할 일을 추가해보세요.';  calcStreak(); // 연속달성 계산}const datePick=$("#datePick"), repeatSel=$("#repeatSel"), taskInput=$("#taskInput");function addTask(date,text,repeat){  const arr=load(date); arr.push({text,done:false,repeat,tags:tagify(text),star:false}); save(date,arr); render(date); updateStats(date);}$("#addBtn").onclick=()=>{const t=taskInput.value.trim(); if(!t)return; const d=new Date(datePick.value); addTask(d,t,repeatSel.value); applyRepeatsFrom(d); taskInput.value=''; taskInput.focus();};$("#taskInput").addEventListener('keydown',e=>{if(e.key==='Enter') $("#addBtn").click();});/* 반복 생성 */function applyRepeatsFrom(date){  const base=load(date); const today=new Date(date);  for(let i=1;i<=30;i++){    const d=new Date(today); d.setDate(today.getDate()+i);    const next=load(d);    base.filter(t=>t.repeat).forEach(t=>{      let doit=false;      if(t.repeat==='daily') doit=true;      if(t.repeat==='weekly' && d.getDay()===today.getDay()) doit=true;      if(t.repeat==='monthly' && d.getDate()===today.getDate()) doit=true;      if(doit && !next.some(x=>x.text===t.text && x.repeat===t.repeat)){ next.push({...t,done:false}); save(d,next); }    });  }}/* 자동 이월 */function rollover(){  const today=new Date(); today.setHours(0,0,0,0);  const yesterday=new Date(today); yesterday.setDate(today.getDate()-1);  const y=load(yesterday), t=load(today);  const carry=y.filter(it=>!it.done);  if(carry.length){    const merged=[...t];    carry.forEach(c=>{ if(!merged.some(x=>x.text===c.text)) merged.push({...c,done:false});});    save(today,merged);  }}/* 연속 달성 */function calcStreak(){  let streak=0; const today=new Date(); today.setHours(0,0,0,0);  for(let i=0;i<365;i++){    const d=new Date(today); d.setDate(today.getDate()-i);    const arr=load(d);    if(arr.length && arr.some(t=>t.done)) streak++;    else break;  }  localStorage.setItem('planner.streak', String(streak));}/* 주간 계획 */const weekGrid=$("#weekGrid"), weekTitle=$("#weekTitle");function mondayOf(date){const d=new Date(date); const day=(d.getDay()+6)%7; d.setDate(d.getDate()-day); d.setHours(0,0,0,0); return d;}function endOfWeek(mon){const d=new Date(mon); d.setDate(d.getDate()+6); return d;}function lw(mon){return JSON.parse(localStorage.getItem('week.'+fmt(mon))||'{}')}function sw(mon,obj){localStorage.setItem('week.'+fmt(mon), JSON.stringify(obj))}function renderWeek(date){  const mon=mondayOf(date), sun=endOfWeek(mon), data=Object.assign({0:'',1:'',2:'',3:'',4:'',5:'',6:''}, lw(mon));  weekTitle.textContent=`${fmt(mon)} (월) ~ ${fmt(sun)} (일)`;  weekGrid.innerHTML='';  '월화수목금토일'.split('').forEach((name,i)=>{    const box=document.createElement('div'); box.className='day';    const ta=box.querySelector('textarea'); let t; ta.oninput=e=>{clearTimeout(t); t=setTimeout(()=>{const cur=lw(mon); cur[i]=e.target.value; sw(mon,cur)},300);}    weekGrid.appendChild(box);});}/* 달력 */const calendar=$("#calendar");function renderCalendar(date){calendar.innerHTML=''; const y=date.getFullYear(), m=date.getMonth();const first=new Date(y,m,1); let start=new Date(first); start.setDate(first.getDate()-((first.getDay()+6)%7));for(let i=0;i<42;i++){const d=new Date(start); d.setDate(start.getDate()+i);const cell=document.createElement('div'); cell.className='cell'; if(fmt(d)===fmt(new Date())) cell.classList.add('today');const preview=(load(d)||[]).slice(0,2).map(t=>esc(t.text)).join('<br>');cell.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"> <strong>${d.getDate()}</strong><button class="btn-outline icon-btn">보기</button></div> <div class="muted" style="margin-top:6px;font-size:12px">${preview}</div>`;cell.querySelector('button').onclick=()=>{datePick.value=fmt(d); render(d); updateStats(d); renderWeek(d);}calendar.appendChild(cell);}}/* 통계 /let chartWeek, chartMonth;function statsWeek(date){const mon=mondayOf(date); const days=[...Array(7)].map((_,i)=>{const d=new Date(mon); d.setDate(mon.getDate()+i); const arr=load(d); return arr.length? Math.round(arr.filter(t=>t.done).length/arr.length100):0;});if(chartWeek) chartWeek.destroy();chartWeek=new Chart($("#chartWeek"), {type:'line', data:{labels:['월','화','수','목','금','토','일'], datasets:[{label:'주간 완료율(%)', data:days, tension:.3}]}, options:{scales:{y:{min:0,max:100}}}});}function statsMonth(date){const y=date.getFullYear(), m=date.getMonth(), last=new Date(y,m+1,0).getDate();const arr=[...Array(last)].map((,day)=>{const d=new Date(y,m,day+1); const a=load(d); return a.length? Math.round(a.filter(t=>t.done).length/a.length*100):0;});if(chartMonth) chartMonth.destroy();chartMonth=new Chart($("#chartMonth"), {type:'bar', data:{labels:arr.map((,i)=>i+1), datasets:[{label:'월간 완료율(%)', data:arr}]}, options:{scales:{y:{min:0,max:100}}}});}/* 알림 스케줄러 */function ensureNotif(){ if('Notification' in window && Notification.permission==='default') Notification.requestPermission(); }function scheduleDaily(){const t=localStorage.getItem('planner.notifyAt'); if(!t) return;ensureNotif();const [hh,mm]=t.split(':').map(Number);const now=new Date(), next=new Date(); next.setHours(hh,mm,0,0); if(next<=now) next.setDate(next.getDate()+1);const ms=next-now;setTimeout(()=>{ const today=new Date($("#datePick").value); const arr=load(today); const remain=arr.filter(x=>!x.done).map(x=>'• '+x.text).slice(0,5).join('\n')||'오늘 할 일이 없어요!'; if('Notification' in window && Notification.permission==='granted'){ new Notification('오늘의 계획', { body: remain }); } scheduleDaily(); }, ms);}$("#notifySave").onclick=()=>{ const v=$("#dailyNotifyAt").value; localStorage.setItem('planner.notifyAt', v||''); alert(v?'알림 시각 저장됨':'알림 해제됨'); scheduleDaily(); };/* 파일 내보내기/불러오기 */$("#clearDone").onclick=()=>{ const d=new Date(datePick.value); save(d, load(d).filter(t=>!t.done)); render(d); updateStats(d); };$("#exportBtn").onclick=()=>{ const d=new Date(datePick.value); const blob=new Blob([JSON.stringify(load(d),null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`plan_${fmt(d)}.json`; a.click(); };$("#importFile").onchange=e=>{ const f=e.target.files?.[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ try{ const d=new Date(datePick.value); save(d, JSON.parse(r.result)); render(d); updateStats(d);}catch{alert('JSON 형식 오류');} }; r.readAsText(f,'utf-8'); };/* 테마 */const themeSel=$("#themeSel"); themeSel.value=localStorage.getItem('planner.theme')||'theme-default'; document.body.className=themeSel.value;themeSel.onchange=()=>{ document.body.className=themeSel.value; localStorage.setItem('planner.theme', themeSel.value); };/* AI 요약/동기부여 */const OPENAI_KEY_KEY='planner.openai.key';$("#saveOpenAI")?.addEventListener('click',()=>{localStorage.setItem(OPENAI_KEY_KEY, $("#openaiKey").value.trim()); alert('저장했습니다');});$("#clearOpenAI")?.addEventListener('click',()=>{localStorage.removeItem(OPENAI_KEY_KEY); $("#openaiKey").value=''; alert('삭제했습니다');});$("#aiBtn").onclick=async ()=>{const key=localStorage.getItem(OPENAI_KEY_KEY);const d=new Date(datePick.value); const arr=load(d);const text = arr.length? arr.map((t,i)=>`${i+1}. ${t.text}${t.done?' (완료)':''}`).join('\n') : '할 일이 없습니다.';if(!key){const left = arr.filter(x=>!x.done).length;alert(left? `🔥 오늘 ${left}개 남았어! 가장 작은 것부터 바로 하나 끝내자.` : '🎉 전부 완료! 가볍게 스트레칭 하자!');return;}try{const res=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:'gpt-4o-mini',messages:[{role:'system',content:'너는 한국어 코치야. 오늘의 할 일을 간단히 요약하고 1~2줄 동기부여를 준다.'},{role:'user',content:`오늘의 계획:\\n${text}\\n요약과 동기부여를 부탁해.`}],temperature:0.7})});const data=await res.json();const msg=data.choices?.[0]?.message?.content || '요약 생성 실패';alert(msg);}catch(err){ console.error(err); alert('요약 호출 실패(키/네트워크 확인)'); }};/* 설정 모달 + Drive 가이드 */const modal=$("#settingsModal"), settingsBtn=$("#settingsBtn"), closeSettings=$("#closeSettings");settingsBtn.onclick=()=>{ $("#openaiKey").value=localStorage.getItem(OPENAI_KEY_KEY)||''; renderDriveStatus(); modal.classList.add('open'); };closeSettings.onclick=()=>modal.classList.remove('open');const GAPI_KEY_KEY='planner.gapi.key', GCLIENT_ID_KEY='planner.gapi.client';const gStatus=$("#gStatus"), gapiKey=$("#gapiKey"), gclientId=$("#gclientId"), gLogin=$("#gLogin"), gBackup=$("#gBackup"), gRestore=$("#gRestore");function renderDriveStatus(){gapiKey.value=localStorage.getItem(GAPI_KEY_KEY)||''; gclientId.value=localStorage.getItem(GCLIENT_ID_KEY)||'';const ready=!!(gapiKey.value && gclientId.value);gLogin.disabled=gBackup.disabled=gRestore.disabled=!ready;gStatus.textContent='상태: '+(ready?'설정됨(로그인 필요)':'미설정');}[gapiKey,gclientId].forEach(el=>el.addEventListener('change',()=>{localStorage.setItem(el===gapiKey?GAPI_KEY_KEY:GCLIENT_ID_KEY, el.value.trim()); renderDriveStatus();}));gLogin.onclick=()=>alert('Google Drive는 키/클라ID가 필요합니다. 여기서는 가이드만 제공합니다.');gBackup.onclick=()=>alert('JSON 내보내기/불러오기를 권장합니다. Drive 연동은 키/클라ID로 gapi 초기화 후 구현하세요.');gRestore.onclick=()=>alert('동일. (또는 JSON 불러오기 사용)');/* PWA 설치 & SW */let deferredPrompt=null;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$("#installBtn").style.display='inline-block';});$("#installBtn").onclick=async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$("#installBtn").style.display='none';};if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js',{scope:'./'}).catch(console.error));}/* 전역 검색 */const searchModal=$("#searchModal"), openSearchBtn=$("#openSearchBtn"), closeSearch=$("#closeSearch");const searchInput=$("#searchInput"), searchResult=$("#searchResult");function openSearch(){ searchModal.classList.add('open'); searchInput.value=''; searchInput.focus(); searchResult.innerHTML=''; }function closeSearchM(){ searchModal.classList.remove('open'); }openSearchBtn.onclick=openSearch; closeSearch.onclick=closeSearchM;window.addEventListener('keydown', e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){ e.preventDefault(); openSearch(); }});searchInput.addEventListener('input', ()=>{const q = searchInput.value.trim().toLowerCase(); searchResult.innerHTML=''; if(!q) return;const items = [];for(const k in localStorage){if(!Object.prototype.hasOwnProperty.call(localStorage,k)) continue;if(!(k.startsWith('plan.')||k.startsWith('week.'))) continue;try{const v = JSON.parse(localStorage.getItem(k));if(k.startsWith('plan.')){const ymd = k.slice(5);(v||[]).forEach(t=>{const blob = (t.text+' '+(t.tags||[]).join(' ')+' '+(t.repeat||'')).toLowerCase();if(blob.includes(q)) items.push({k, ymd, text:t.text});});}else{const ymd = k.slice(5);const s = Object.values(v||{}).join(' ').toLowerCase();if(s.includes(q)) items.push({k, ymd, text:'[주간메모] '+(Object.values(v||{}).find(x=>x?.toLowerCase().includes(q))||'')});}}catch{}}items.slice(0,100).forEach(it=>{const li=document.createElement('li');li.className='task';li.innerHTML=`<div class="text">${esc(it.text)}</div><div class="meta">${it.ymd}</div>`;li.onclick=()=>{ datePick.value=it.ymd; render(new Date(it.ymd)); updateStats(new Date(it.ymd)); renderWeek(new Date(it.ymd)); closeSearchM(); };searchResult.appendChild(li);});});/* 전체 백업/복원 */const backupModal=$("#backupModal"), backupAllBtn=$("#backupAllBtn"), restoreAllBtn=$("#restoreAllBtn");const closeBackup=$("#closeBackup"), downloadAll=$("#downloadAll"), uploadAll=$("#uploadAll");backupAllBtn.onclick=()=>{ backupModal.classList.add('open'); };restoreAllBtn.onclick=()=>{ backupModal.classList.add('open'); };closeBackup.onclick=()=>backupModal.classList.remove('open');downloadAll.onclick=()=>{const dump={};for(const k in localStorage){if(!Object.prototype.hasOwnProperty.call(localStorage,k)) continue;if(k.startsWith('plan.')||k.startsWith('week.')) dump[k]=localStorage.getItem(k);}const blob=new Blob([JSON.stringify(dump,null,2)],{type:'application/json'});const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='planner_all_backup.json'; a.click();};uploadAll.onchange=e=>{const f=e.target.files?.[0]; if(!f) return;const r=new FileReader();r.onload=()=>{try{const obj=JSON.parse(r.result);Object.entries(obj).forEach(([k,v])=>{if(k.startsWith('plan.')||k.startsWith('week.')) localStorage.setItem(k,v);});alert('복원 완료!'); goToday();}catch{ alert('JSON 형식 오류'); }};r.readAsText(f,'utf-8');};/* 포모도로 */const disp=$("#pomodoroDisp"), stateLabel=$("#pomodoroState");const focusMin=$("#focusMin"), breakMin=$("#breakMin");const startBtn=$("#pomodoroStart"), resetBtn=$("#pomodoroReset");let running=false, onBreak=false, leftMS=0, timerId=null;function fmtMMSS(ms){ const s=Math.max(0,Math.round(ms/1000)); const m=Math.floor(s/60), ss=String(s%60).padStart(2,'0'); return `${m}:${ss}`; }function tick(){leftMS-=1000; disp.textContent=fmtMMSS(leftMS);if(leftMS<=0){running=false; clearInterval(timerId); timerId=null;if('Notification' in window && Notification.permission==='granted'){new Notification(onBreak?'휴식 종료! 집중 시작':'집중 종료! 휴식 시작');}onBreak=!onBreak;start(); // 자동 다음 단계}}function start(){if(running){ running=false; clearInterval(timerId); timerId=null; stateLabel.textContent='일시정지'; return; }if(leftMS<=0){ leftMS = (onBreak? Number(breakMin.value): Number(focusMin.value)) * 60 * 1000; }running=true; stateLabel.textContent = onBreak?'휴식 중':'집중 중';disp.textContent=fmtMMSS(leftMS);timerId=setInterval(tick,1000);}function reset(){ running=false; clearInterval(timerId); timerId=null; onBreak=false; leftMS=Number(focusMin.value)601000; disp.textContent=fmtMMSS(leftMS); stateLabel.textContent='대기 중'; }startBtn.onclick=start; resetBtn.onclick=reset;window.addEventListener('keydown', e=>{ if(e.code==='Space' && !/input|textarea|select/i.test(e.target.tagName)){ e.preventDefault(); start(); }});reset();/* 단축키 */window.addEventListener('keydown', e=>{if(/input|textarea|select/i.test(e.target.tagName)) return;if(e.key.toLowerCase()==='n'){ $("#taskInput").focus(); }if(e.key.toLowerCase()==='t'){ goToday(); }if(e.key==='/'){ e.preventDefault(); $("#tagFilter").focus(); }});/* 날짜 전환/초기화 */function goToday(){const t=new Date();t.setHours(0,0,0,0);datePick.value=fmt(t);render(t);updateStats(t);renderWeek(t);renderCalendar(t);statsWeek(t);statsMonth(t);}$("#todayBtn").onclick=goToday;datePick.onchange=()=>{const d=new Date(datePick.value);render(d);updateStats(d);renderWeek(d);renderCalendar(d);statsWeek(d);statsMonth(d)}tagFilter.onchange=()=>{const d=new Date(datePick.value);render(d);}/* 부팅 */(function init(){$("#dailyNotifyAt").value = localStorage.getItem('planner.notifyAt') || '';rollover();goToday();scheduleDaily();// 테마 복구document.body.className = localStorage.getItem('planner.theme') || 'theme-default';})();</script></body></html>
