@@ -1,229 +1,117 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>나만의 계획표 🌟</title>
-  <style>
-    body {
-      font-family: 'Pretendard', sans-serif;
-      background: linear-gradient(to bottom, #f7f9ff, #eef3ff);
-      text-align: center;
-      padding: 30px;
-    }
-    h1 { color: #333; }
-    input, textarea {
-      padding: 8px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      font-size: 15px;
-    }
-    button {
-      padding: 6px 12px;
-      border: none;
-      border-radius: 6px;
-      background: #4b6ef5;
-      color: white;
-      cursor: pointer;
-      font-size: 14px;
-    }
-    button:hover { background: #3656d4; }
-    ul { list-style: none; padding: 0; }
-    li {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      margin: 6px auto;
-      gap: 10px;
-    }
-    li span { cursor: pointer; }
-    li.done span { text-decoration: line-through; color: #888; }
-    #taskList {
-      margin: 10px auto;
-      width: 250px;
-      background: #fff;
-      border-radius: 8px;
-      padding: 10px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    #weeklyPlan { width: 300px; height: 80px; margin-top: 10px; }
-    .small-text { font-size: 12px; color: #666; }
-  </style>
-
-  <!-- Google API -->
-  <script src="https://apis.google.com/js/api.js"></script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>✨ 나의 오늘의 목표 ✨</title>
+<style>
+  body { font-family: 'Pretendard', sans-serif; background: #f6f9ff; text-align: center; margin: 0; padding: 0; }
+  h1 { margin-top: 40px; color: #222; }
+  input, textarea { border: 1px solid #ccc; border-radius: 8px; padding: 10px; width: 300px; margin: 8px; font-size: 15px; }
+  button { background: #3b57f6; color: white; border: none; border-radius: 6px; padding: 8px 14px; cursor: pointer; transition: 0.2s; margin: 4px; }
+  button:hover { background: #2c45d0; }
+  .fade { animation: fade 0.8s ease; }
+  @keyframes fade { 0%{opacity:0.2;}100%{opacity:1;} }
+</style>
 </head>
 <body>
   <h1>✨ 나의 오늘의 목표 ✨</h1>
-  <input type="text" id="taskInput" placeholder="새로운 목표를 입력하세요!">
-  <button id="addTaskBtn">추가</button>
-  <ul id="taskList"></ul>
 
-  <h3>📅 주간 계획</h3>
-  <textarea id="weeklyPlan" placeholder="이번 주 계획을 적어보세요!"></textarea><br>
-  <button id="saveWeeklyBtn">저장</button>
+  <div>
+    <input id="goalInput" type="text" placeholder="새로운 목표를 입력하세요!" />
+    <button id="addGoalBtn">추가</button>
+  </div>
 
-  <hr style="margin:30px;">
-  <h3>☁️ Google Drive 백업/복원</h3>
-  <button id="loginBtn">Google 로그인</button>
-  <button id="backupBtn">Drive에 백업하기</button>
-  <button id="restoreBtn">Drive에서 불러오기</button>
-  <p id="status" class="small-text"></p>
+  <div>
+    <h3>🗓 주간 계획</h3>
+    <textarea id="weeklyPlan" rows="4" placeholder="이번 주 계획을 적어보세요!"></textarea><br />
+    <button id="savePlanBtn">저장</button>
+  </div>
 
+  <hr style="margin:25px 0;">
+  <div>
+    <h3>☁ Google Drive 백업/복원</h3>
+    <button id="loginBtn">Google 로그인</button>
+    <button id="manualBackupBtn">수동 백업</button>
+  </div>
+
+  <script src="https://apis.google.com/js/api.js"></script>
   <script>
-    // =============================
-    // 🔹 로컬 데이터 관리
-    // =============================
-    const taskInput = document.getElementById('taskInput');
-    const addTaskBtn = document.getElementById('addTaskBtn');
-    const taskList = document.getElementById('taskList');
-    const weeklyPlan = document.getElementById('weeklyPlan');
-    const saveWeeklyBtn = document.getElementById('saveWeeklyBtn');
-    const statusText = document.getElementById('status');
-
-    function saveTasks() {
-      const tasks = [];
-      taskList.querySelectorAll('li').forEach(li => {
-        tasks.push({
-          text: li.querySelector('span').textContent,
-          done: li.classList.contains('done')
-        });
-      });
-      localStorage.setItem('tasks', JSON.stringify(tasks));
-    }
-
-    function loadTasks() {
-      const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
-      tasks.forEach(t => addTask(t.text, t.done));
-    }
-
-    function addTask(text, done=false) {
-      const li = document.createElement('li');
-      const span = document.createElement('span');
-      span.textContent = text;
-      if (done) li.classList.add('done');
-
-      span.addEventListener('click', () => {
-        li.classList.toggle('done');
-        saveTasks();
-      });
-
-      const delBtn = document.createElement('button');
-      delBtn.textContent = '❌';
-      delBtn.onclick = () => { li.remove(); saveTasks(); };
-
-      li.append(span, delBtn);
-      taskList.append(li);
-      saveTasks();
-    }
-
-    addTaskBtn.onclick = () => {
-      const text = taskInput.value.trim();
-      if (!text) return;
-      addTask(text);
-      taskInput.value = '';
-    };
-
-    saveWeeklyBtn.onclick = () => {
-      localStorage.setItem('weeklyPlan', weeklyPlan.value);
-      alert('주간 계획이 저장되었습니다 ✅');
-      autoBackup();
-    };
-
-    function loadWeeklyPlan() {
-      weeklyPlan.value = localStorage.getItem('weeklyPlan') || '';
-    }
-
-    // =============================
-    // ☁️ Google Drive API 설정
-    // =============================
-    const CLIENT_ID = '여기에_본인_OAuth_클라이언트ID';
-    const API_KEY = '여기에_본인_API_KEY';
+    const CLIENT_ID = '✅여기에_본인_OAuth_Client_ID_입력'; 
+    const API_KEY = '✅여기에_본인_API_KEY_입력';
     const SCOPES = 'https://www.googleapis.com/auth/drive.file';
-    const DISCOVERY_DOCS = ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'];
+    const FILE_NAME = "my_goals.json";
 
-    document.getElementById('loginBtn').onclick = () => gapi.auth2.getAuthInstance().signIn();
-    document.getElementById('backupBtn').onclick = backupToDrive;
-    document.getElementById('restoreBtn').onclick = restoreFromDrive;
+    function log(t){console.log("📘",t);}
+    function showSaved(btn){btn.innerText="✅ 저장됨!";setTimeout(()=>btn.innerText="저장",1200);}
 
-    function updateStatus(msg) {
-      statusText.textContent = msg;
-    }
-
-    function initClient() {
+    function initClient(){
       gapi.client.init({
         apiKey: API_KEY,
         clientId: CLIENT_ID,
-        discoveryDocs: DISCOVERY_DOCS,
-        scope: SCOPES,
-      }).then(() => {
-        const auth = gapi.auth2.getAuthInstance();
-        auth.isSignedIn.listen(updateSigninStatus);
-        updateSigninStatus(auth.isSignedIn.get());
+        discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"],
+        scope: SCOPES
+      }).then(()=>{
+        log("Google API 초기화 완료");
+        document.getElementById("loginBtn").disabled=false;
       });
     }
 
-    function updateSigninStatus(isSignedIn) {
-      if (isSignedIn) {
-        updateStatus('✅ 로그인됨 — 자동 백업 활성화');
-        autoBackup();
-      } else {
-        updateStatus('❌ 로그인 안 됨');
-      }
+    function handleClientLoad(){ gapi.load('client:auth2', initClient); }
+
+    async function signIn(){
+      try{
+        await gapi.auth2.getAuthInstance().signIn();
+        alert("✅ 로그인 성공!");
+        await restoreFromDrive();
+      }catch(e){alert("로그인 실패:"+e.message);}
     }
 
-    function autoBackup() {
-      if (gapi.auth2.getAuthInstance().isSignedIn.get()) {
-        backupToDrive(true);
-      }
-    }
-
-    function backupToDrive(isAuto=false) {
-      const data = {
-        tasks: JSON.parse(localStorage.getItem('tasks')) || [],
-        weeklyPlan: localStorage.getItem('weeklyPlan') || ''
+    async function autoBackup(){
+      const data={
+        goal:document.getElementById('goalInput').value,
+        plan:document.getElementById('weeklyPlan').value
       };
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const metadata = {
-        name: 'planner_backup.json',
-        mimeType: 'application/json'
-      };
-      const form = new FormData();
-      form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-      form.append('file', blob);
-
-      fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-        method: 'POST',
-        headers: new Headers({ 'Authorization': 'Bearer ' + gapi.auth.getToken().access_token }),
-        body: form
-      }).then(res => res.json()).then(() => {
-        if (!isAuto) alert('Drive에 백업 완료 ☁️');
-      });
-    }
-
-    function restoreFromDrive() {
-      gapi.client.drive.files.list({
-        q: "name='planner_backup.json'",
-        fields: 'files(id, name)',
-        spaces: 'drive'
-      }).then(res => {
-        const file = res.result.files[0];
-        if (!file) return alert('백업 파일이 없습니다.');
-        gapi.client.drive.files.get({
-          fileId: file.id,
-          alt: 'media'
-        }).then(file => {
-          const data = file.result;
-          localStorage.setItem('tasks', JSON.stringify(data.tasks));
-          localStorage.setItem('weeklyPlan', data.weeklyPlan);
-          location.reload();
+      const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
+      const files=await gapi.client.drive.files.list({q:`name='${FILE_NAME}'`,fields:'files(id)'});
+      if(files.result.files.length>0){
+        const fileId=files.result.files[0].id;
+        await gapi.client.request({
+          path:`/upload/drive/v3/files/${fileId}`,
+          method:'PATCH',
+          params:{uploadType:'media'},
+          body:blob
         });
-      });
+      }else{
+        await gapi.client.drive.files.create({
+          resource:{name:FILE_NAME,mimeType:'application/json'},
+          media:{mimeType:'application/json',body:blob}
+        });
+      }
+      log("Drive에 자동 백업 완료");
     }
 
-    gapi.load('client:auth2', initClient);
-    loadTasks();
-    loadWeeklyPlan();
+    async function restoreFromDrive(){
+      const res=await gapi.client.drive.files.list({q:`name='${FILE_NAME}'`,fields:'files(id)'});
+      if(res.result.files.length>0){
+        const fileId=res.result.files[0].id;
+        const file=await gapi.client.drive.files.get({fileId,alt:'media'});
+        const data=JSON.parse(file.body);
+        document.getElementById('goalInput').value=data.goal||'';
+        document.getElementById('weeklyPlan').value=data.plan||'';
+        alert("Drive에서 복원 완료!");
+      }else log("Drive에 저장된 파일 없음");
+    }
+
+    document.getElementById('loginBtn').onclick=signIn;
+    document.getElementById('savePlanBtn').onclick=async(e)=>{
+      showSaved(e.target);
+      await autoBackup();
+    };
+    document.getElementById('manualBackupBtn').onclick=autoBackup;
+
+    window.onload=handleClientLoad;
   </script>
 </body>
 </html>
+
