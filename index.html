@@ -2,60 +2,97 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>나만의 계획표 (ALL-IN-ONE)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>나만의 계획표 (ALL-IN-ONE • 모바일 최적화 • PWA)</title>
+
+<!-- PWA -->
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#22c55e">
+
 <style>
-:root {
-  --bg:#f6f7fb; --card:#fff; --ink:#0f172a; --line:#e9ecf3;
-  --primary:#22c55e; --danger:#ef4444;
+:root{
+  --bg:#f6f7fb; --card:#fff; --ink:#0f172a; --line:#e5e7eb;
+  --primary:#22c55e; --primary-2:#16a34a; --danger:#ef4444;
+  --muted:#6b7280;
 }
-body {margin:0; font-family:sans-serif; background:var(--bg); color:var(--ink);}
-body.dark {--bg:#111827; --card:#1f2937; --ink:#f9fafb; --line:#374151;}
-.wrap {max-width:1100px; margin:20px auto; padding:10px;}
-.card {background:var(--card); border:1px solid var(--line); border-radius:12px; box-shadow:0 6px 16px rgba(0,0,0,.06); margin-bottom:20px; padding:16px;}
-h1,h2 {margin:0 0 8px;}
-.input-row {display:flex; gap:10px;}
-input,select,textarea {padding:8px; border:1px solid var(--line); border-radius:8px; background:#fff; width:100%;}
-button {cursor:pointer; border:0; border-radius:8px; padding:8px 12px; font-weight:600;}
-.btn {background:var(--primary); color:#fff;}
-.btn-outline {background:#fff; border:1px solid var(--line);}
-.btn-danger {background:var(--danger); color:#fff;}
-ul {list-style:none; padding:0; margin:10px 0;}
-li.task {display:flex; align-items:center; justify-content:space-between; padding:6px; border-bottom:1px solid var(--line);}
-li.task.completed .text {text-decoration:line-through; color:#888;}
-li.task .meta {font-size:12px; color:#666;}
-.star {cursor:pointer; margin-left:6px; color:#bbb;}
-.star.active {color:gold;}
-.tag {background:#eef; border-radius:6px; padding:2px 6px; margin-left:4px; font-size:11px;}
-/* 완료율 그래프 */
-.ring {--p:0; width:90px; height:90px; border-radius:50%;
- background:conic-gradient(var(--primary) calc(var(--p)*1%),#ddd 0);}
-.ring::after {content:attr(data-label); display:flex; align-items:center; justify-content:center;
- position:absolute; width:60px; height:60px; margin:15px; background:var(--card); border-radius:50%; font-weight:bold;}
-/* 주간계획 */
-.week {display:grid; grid-template-columns:repeat(7,1fr); gap:6px;}
-.day {background:var(--card); border:1px solid var(--line); border-radius:8px; padding:6px; display:flex; flex-direction:column;}
-.day textarea {flex:1; resize:vertical; min-height:60px;}
-/* 달력 */
-.calendar {display:grid; grid-template-columns:repeat(7,1fr); gap:4px;}
-.calendar div {border:1px solid var(--line); border-radius:6px; padding:6px; min-height:60px;}
-.calendar .today {background:#d1fae5;}
-.toggle {float:right;}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif; background:var(--bg); color:var(--ink);}
+body.dark{--bg:#0b1220; --card:#111827; --ink:#e5e7eb; --line:#334155; --muted:#9aa3af}
+.wrap{max-width:1100px; margin:0 auto; padding:16px; padding-bottom:calc(16px + env(safe-area-inset-bottom,0));}
+.card{background:var(--card); border:1px solid var(--line); border-radius:16px; box-shadow:0 8px 28px rgba(2,6,23,.06); margin-bottom:16px; padding:16px;}
+h1,h2{margin:0 0 .55rem}
+.muted{color:var(--muted)}
+button{cursor:pointer; border:0; border-radius:12px; padding:12px 14px; font-weight:700; line-height:1; min-height:44px}
+.btn{background:var(--primary); color:#fff}
+.btn:hover{background:var(--primary-2)}
+.btn-outline{background:transparent; border:1px solid var(--line); color:var(--ink)}
+.btn-danger{background:var(--danger); color:#fff}
+.icon-btn{padding:10px 12px; min-width:44px}
+input,select,textarea{padding:12px; border:1px solid var(--line); border-radius:12px; background:#fff; color:inherit}
+body.dark input, body.dark select, body.dark textarea{background:#0f172a; border-color:#22314a}
+input,select{min-height:44px}
+.input-row{display:flex; gap:10px; flex-wrap:wrap}
+.input-row > *{flex:1 1 180px}
+ul{list-style:none; padding:0; margin:12px 0 0}
+li.task{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 6px; border-bottom:1px dashed var(--line)}
+li.task .text{flex:1; line-height:1.45}
+li.task.completed .text{text-decoration:line-through; color:#9aa3ad}
+li.task .meta{font-size:12px; color:var(--muted)}
+.star{cursor:pointer; margin-left:6px; color:#bdbdbd; font-size:18px}
+.star.active{color:gold}
+/* 원형 완료율 */
+.ring-wrap{position:relative; width:96px; height:96px}
+.ring{--p:0; width:96px; height:96px; border-radius:50%; background:conic-gradient(var(--primary) calc(var(--p)*1%), #d1d5db 0)}
+.ring::after{content:attr(data-label); position:absolute; inset:14px; border-radius:50%; background:var(--card);
+ display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px}
+/* 주간/달력 컨테이너: 모바일 가로 스크롤 */
+.h-scroll{overflow:auto; -webkit-overflow-scrolling:touch}
+.week{display:grid; grid-template-columns:repeat(7, minmax(160px,1fr)); gap:8px; min-width:1120px}
+.day{border:1px solid var(--line); border-radius:12px; padding:10px; background:var(--card); display:flex; flex-direction:column; min-height:140px}
+.day textarea{flex:1; resize:vertical; min-height:84px}
+.calendar{display:grid; grid-template-columns:repeat(7, minmax(120px,1fr)); gap:6px; min-width:840px}
+.calendar .cell{border:1px solid var(--line); border-radius:10px; padding:10px; min-height:80px}
+.calendar .today{outline:2px solid #34d399; outline-offset:-2px; background:rgba(52,211,153,.12)}
+.header-row{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap}
+@media (max-width:840px){
+  .wrap{padding:12px}
+  .card{padding:12px}
+  h1{font-size:20px}
+  h2{font-size:17px}
+  .input-row{gap:8px}
+  .ring-wrap,.ring{width:84px;height:84px}
+  .ring::after{inset:12px}
+}
+@media (max-width:520px){
+  .input-row > *{flex:1 1 100%}
+  .icon-btn{width:100%}
+}
 </style>
 </head>
 <body>
 <div class="wrap">
 
+  <!-- 헤더 / 다크모드 / 설치 -->
   <div class="card">
-    <h1>✨ 나만의 계획표 (ALL-IN-ONE)</h1>
-    <button id="darkToggle" class="btn-outline toggle">🌙 다크모드</button>
+    <div class="header-row">
+      <div>
+        <h1>✨ 나만의 계획표 (ALL-IN-ONE)</h1>
+        <div class="muted">빠른 메모 · 날짜별 할 일 · 완료율 · 주간 메모 · 달력 · 반복 · 알림 · 다크모드 · PWA</div>
+      </div>
+      <div style="display:flex; gap:8px">
+        <button id="darkToggle" class="btn-outline icon-btn" aria-label="다크모드 전환">🌙 다크모드</button>
+        <button id="installBtn" class="btn-outline icon-btn" style="display:none">📲 설치</button>
+        <button id="notifyTest" class="btn-outline icon-btn" aria-label="알림 테스트">🔔 알림 테스트</button>
+      </div>
+    </div>
   </div>
 
   <!-- 간단 To-Do -->
   <div class="card">
     <h2>📝 간단 목표</h2>
     <div class="input-row">
-      <input id="simpleTaskInput" placeholder="빠른 메모 추가" />
+      <input id="simpleTaskInput" placeholder="빠른 메모 추가 (탭/클릭으로 완료 표시)" />
       <button id="simpleAddBtn" class="btn">추가</button>
     </div>
     <ul id="simpleTaskList"></ul>
@@ -65,12 +102,12 @@ li.task .meta {font-size:12px; color:#666;}
   <div class="card">
     <h2>📅 오늘의 목표</h2>
     <div class="input-row">
-      <input type="date" id="datePick"/>
+      <input type="date" id="datePick" />
       <button id="todayBtn" class="btn-outline">오늘</button>
     </div>
     <div class="input-row" style="margin-top:8px">
-      <input id="taskInput" placeholder="예) 운동 30분" />
-      <select id="repeatSel">
+      <input id="taskInput" placeholder="예) 운동 30분  #건강  (⭐은 아래 별 클릭)" />
+      <select id="repeatSel" title="반복">
         <option value="">반복 없음</option>
         <option value="daily">매일</option>
         <option value="weekly">매주</option>
@@ -78,150 +115,220 @@ li.task .meta {font-size:12px; color:#666;}
       </select>
       <button id="addBtn" class="btn">추가</button>
     </div>
+
     <ul id="taskList"></ul>
-    <button id="clearDone" class="btn-outline">완료 모두 지우기</button>
-    <button id="exportBtn" class="btn-outline">내보내기</button>
-    <input type="file" id="importFile" />
-    <div style="margin-top:12px;display:flex;align-items:center;gap:20px;">
-      <div style="position:relative;">
-        <div id="ring" class="ring" data-label="0%"></div>
-      </div>
-      <div id="summary">할 일을 추가해보세요.</div>
+
+    <div class="input-row" style="margin-top:8px">
+      <button id="clearDone" class="btn-outline">완료 모두 지우기</button>
+      <button id="exportBtn" class="btn-outline">내보내기(JSON)</button>
+      <input type="file" id="importFile" accept="application/json" />
+    </div>
+
+    <div style="margin-top:12px; display:flex; align-items:center; gap:16px; flex-wrap:wrap">
+      <div class="ring-wrap"><div id="ring" class="ring" data-label="0%"></div></div>
+      <div id="summary" class="muted">할 일을 추가해보세요.</div>
     </div>
   </div>
 
-  <!-- 주간계획 -->
+  <!-- 주간 계획 -->
   <div class="card">
-    <h2>🗓 주간 계획</h2>
-    <div id="weekGrid" class="week"></div>
+    <div class="header-row">
+      <h2>🗓 주간 계획</h2>
+      <div class="muted" id="weekTitle"></div>
+    </div>
+    <div class="h-scroll"><div id="weekGrid" class="week"></div></div>
   </div>
 
-  <!-- 달력 뷰 -->
+  <!-- 달력 -->
   <div class="card">
     <h2>📆 월간 달력</h2>
-    <div id="calendar" class="calendar"></div>
+    <div class="h-scroll"><div id="calendar" class="calendar"></div></div>
   </div>
-
 </div>
 
 <script>
-/* ===== Util ===== */
+/* ===== 공통 유틸 ===== */
 const $=s=>document.querySelector(s);
 const fmt=d=>d.toISOString().slice(0,10);
 const KEY=ymd=>"plan."+ymd;
-function load(date){return JSON.parse(localStorage.getItem(KEY(fmt(date)))||"[]")}
-function save(date,arr){localStorage.setItem(KEY(fmt(date)),JSON.stringify(arr))}
+const tagify = txt => (txt.match(/#\\S+/g)||[]);
+function escapeHtml(s=''){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 
 /* ===== 간단 To-Do ===== */
 const sInput=$("#simpleTaskInput"), sBtn=$("#simpleAddBtn"), sList=$("#simpleTaskList");
-sBtn.onclick=()=>{ if(sInput.value.trim()){const li=document.createElement("li"); li.textContent=sInput.value;
- li.onclick=()=>li.classList.toggle("completed"); sList.appendChild(li); sInput.value=""; } }
+sBtn.onclick=()=>{ if(!sInput.value.trim()) return;
+  const li=document.createElement('li'); li.textContent=sInput.value.trim();
+  li.onclick=()=>li.classList.toggle('completed');
+  sList.appendChild(li); sInput.value=''; sInput.focus();
+};
 
-/* ===== 오늘의 목표 ===== */
+/* ===== 날짜별 할 일 데이터 ===== */
+function load(date){return JSON.parse(localStorage.getItem(KEY(fmt(date)))||'[]')}
+function save(date,arr){localStorage.setItem(KEY(fmt(date)), JSON.stringify(arr))}
+
+/* ===== 오늘의 목표 UI ===== */
 const taskInput=$("#taskInput"), addBtn=$("#addBtn"), taskList=$("#taskList");
 const datePick=$("#datePick"), todayBtn=$("#todayBtn"), clearBtn=$("#clearDone");
 const exportBtn=$("#exportBtn"), importFile=$("#importFile"), ring=$("#ring"), summary=$("#summary");
 const repeatSel=$("#repeatSel");
 
 function render(date){
-  const arr=load(date); taskList.innerHTML="";
-  arr.sort((a,b)=> (b.star?1:0)-(a.star?1:0)); // 중요도 우선
+  const arr=load(date); taskList.innerHTML='';
+  // 중요(⭐) 상단, 완료 하단
+  arr.sort((a,b)=> (b.star?1:0)-(a.star?1:0) || (a.done?1:0)-(b.done?1:0));
   arr.forEach((t,i)=>{
-    const li=document.createElement("li"); li.className="task"+(t.done?" completed":"");
-    li.innerHTML=`<span class="text">${t.text}</span>
-    <span class="meta">${t.repeat? "🔁"+t.repeat:""} ${t.tags?t.tags.join(" "):""}</span>
-    <span>
-      <span class="star ${t.star?"active":""}">★</span>
-      <button class="btn-outline">X</button>
-    </span>`;
-    li.querySelector(".text").onclick=()=>{arr[i].done=!arr[i].done; save(date,arr); render(date);}
-    li.querySelector("button").onclick=()=>{arr.splice(i,1); save(date,arr); render(date);}
-    li.querySelector(".star").onclick=()=>{arr[i].star=!arr[i].star; save(date,arr); render(date);}
+    const li=document.createElement('li'); li.className='task'+(t.done?' completed':'');
+    const tags=(t.tags||[]).map(x=>`<span class="tag">${escapeHtml(x)}</span>`).join(' ');
+    li.innerHTML = `
+      <div style="display:flex; gap:10px; align-items:center; flex:1">
+        <span class="text">${escapeHtml(t.text)}</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px">
+        <span class="meta">${t.repeat? '🔁 '+t.repeat:''} ${tags}</span>
+        <span class="star ${t.star?'active':''}" title="중요 표시">★</span>
+        <button class="btn-outline icon-btn" title="삭제">삭제</button>
+      </div>`;
+    li.querySelector('.text').onclick=()=>{ const a=load(date); a[i].done=!a[i].done; save(date,a); render(date); };
+    li.querySelector('.star').onclick=()=>{ const a=load(date); a[i].star=!a[i].star; save(date,a); render(date); };
+    li.querySelector('button').onclick=()=>{ const a=load(date); a.splice(i,1); save(date,a); render(date); };
     taskList.appendChild(li);
   });
   updateStats(date);
 }
+
 function addTask(date,text,repeat){
-  const tags=text.match(/#\S+/g)||[];
-  const arr=load(date); arr.push({text,done:false,repeat,tags,star:false});
+  const arr=load(date);
+  arr.push({text,done:false,repeat,tags:tagify(text),star:false});
   save(date,arr); render(date);
 }
+
 function updateStats(date){
-  const arr=load(date), done=arr.filter(t=>t.done).length, total=arr.length;
-  const pct=total?Math.round(done/total*100):0;
-  ring.style.setProperty("--p",pct); ring.setAttribute("data-label",pct+"%");
-  summary.textContent=total?`총 ${total}개 중 ${done}개 완료`:"할 일을 추가해보세요.";
+  const arr=load(date), total=arr.length, done=arr.filter(t=>t.done).length;
+  const pct= total? Math.round(done/total*100):0;
+  ring.style.setProperty('--p', pct); ring.setAttribute('data-label', pct+'%');
+  summary.textContent = total? `총 ${total}개 중 ${done}개 완료` : '할 일을 추가해보세요.';
 }
 
-/* 반복 일정 적용 */
-function applyRepeats(){
-  const today=new Date();
-  for(let i=0;i<30;i++){ // 앞 30일
-    const d=new Date(); d.setDate(today.getDate()+i);
-    const arr=load(today).filter(t=>t.repeat);
-    arr.forEach(t=>{
-      let add=false;
-      if(t.repeat==="daily") add=true;
-      if(t.repeat==="weekly" && d.getDay()===today.getDay()) add=true;
-      if(t.repeat==="monthly" && d.getDate()===today.getDate()) add=true;
-      if(add){
-        const arr2=load(d);
-        if(!arr2.some(x=>x.text===t.text)) {arr2.push({...t,done:false}); save(d,arr2);}
+/* 반복 일정: 오늘 추가한 반복 작업을 앞으로 생성 */
+function applyRepeatsFrom(date){
+  const base=load(date);
+  const today=new Date(date);
+  for(let i=1;i<=30;i++){
+    const d=new Date(today); d.setDate(today.getDate()+i);
+    const next=load(d);
+    base.filter(t=>t.repeat).forEach(t=>{
+      let doit=false;
+      if(t.repeat==='daily') doit=true;
+      if(t.repeat==='weekly' && d.getDay()===today.getDay()) doit=true;
+      if(t.repeat==='monthly' && d.getDate()===today.getDate()) doit=true;
+      if(doit && !next.some(x=>x.text===t.text && x.repeat===t.repeat)){
+        next.push({...t,done:false}); localStorage.setItem(KEY(fmt(d)), JSON.stringify(next));
       }
     });
   }
 }
 
 /* 알림 */
-function notify(msg){ if(Notification.permission==="granted"){new Notification(msg);} }
+function ensureNotif(){ if('Notification' in window && Notification.permission!=='granted'){ Notification.requestPermission(); } }
+function notify(msg){ if('Notification' in window && Notification.permission==='granted'){ new Notification(msg); } }
+$("#notifyTest").onclick=()=>{ ensureNotif(); setTimeout(()=>notify('알림 테스트: 잘 작동해요!'), 300); };
 
-/* 주간 계획 */
-function mondayOf(date){const d=new Date(date); const day=(d.getDay()+6)%7; d.setDate(d.getDate()-day); return d;}
-function loadWeek(mon){return JSON.parse(localStorage.getItem("week."+fmt(mon))||"{}");}
-function saveWeek(mon,data){localStorage.setItem("week."+fmt(mon),JSON.stringify(data));}
+/* ===== 주간 계획 ===== */
+const weekGrid=$("#weekGrid"), weekTitle=$("#weekTitle");
+function mondayOf(date){const d=new Date(date); const day=(d.getDay()+6)%7; d.setDate(d.getDate()-day); d.setHours(0,0,0,0); return d;}
+function endOfWeek(mon){const d=new Date(mon); d.setDate(d.getDate()+6); return d;}
+function loadWeek(mon){return JSON.parse(localStorage.getItem('week.'+fmt(mon))||'{}')}
+function saveWeek(mon,obj){localStorage.setItem('week.'+fmt(mon), JSON.stringify(obj))}
 function renderWeek(date){
-  const mon=mondayOf(date); const data=loadWeek(mon); const days=["월","화","수","목","금","토","일"];
-  weekGrid.innerHTML="";
-  days.forEach((d,i)=>{
-    const box=document.createElement("div"); box.className="day";
-    const val=data[i]||""; box.innerHTML=`<strong>${d}</strong><textarea>${val}</textarea>`;
-    box.querySelector("textarea").oninput=e=>{const cur=loadWeek(mon); cur[i]=e.target.value; saveWeek(mon,cur);}
+  const mon=mondayOf(date); const sun=endOfWeek(mon);
+  weekTitle.textContent = `${fmt(mon)} (월) ~ ${fmt(sun)} (일)`;
+  const data=Object.assign({0:'',1:'',2:'',3:'',4:'',5:'',6:''}, loadWeek(mon));
+  weekGrid.innerHTML='';
+  const kor=['월','화','수','목','금','토','일'];
+  kor.forEach((name,i)=>{
+    const box=document.createElement('div'); box.className='day';
+    box.innerHTML=`<strong>${name}</strong><textarea placeholder="${name} 계획을 적어보세요.">${escapeHtml(data[i])}</textarea>`;
+    const ta=box.querySelector('textarea');
+    let t=null; ta.oninput=e=>{ clearTimeout(t); t=setTimeout(()=>{ const cur=loadWeek(mon); cur[i]=e.target.value; saveWeek(mon,cur); }, 300); };
     weekGrid.appendChild(box);
   });
 }
 
-/* 달력 */
+/* ===== 달력 ===== */
+const calendar=$("#calendar");
 function renderCalendar(date){
-  const cal=$("#calendar"); cal.innerHTML="";
-  const y=date.getFullYear(), m=date.getMonth(); const first=new Date(y,m,1), last=new Date(y,m+1,0);
-  let day=1-first.getDay(); for(let i=0;i<42;i++){
-    const d=new Date(y,m,day+i); const div=document.createElement("div");
-    div.textContent=d.getDate();
-    if(fmt(d)===fmt(new Date())) div.classList.add("today");
-    div.onclick=()=>{datePick.value=fmt(d); render(d); renderWeek(d);}
-    cal.appendChild(div);
+  calendar.innerHTML='';
+  const y=date.getFullYear(), m=date.getMonth();
+  const first=new Date(y,m,1), last=new Date(y,m+1,0);
+  let start=new Date(first); start.setDate(first.getDate()-((first.getDay()+6)%7)); // 월요일 시작
+  for(let i=0;i<42;i++){
+    const d=new Date(start); d.setDate(start.getDate()+i);
+    const cell=document.createElement('div'); cell.className='cell';
+    if(fmt(d)===fmt(new Date())) cell.classList.add('today');
+    const preview=(load(d)||[]).slice(0,2).map(t=>escapeHtml(t.text)).join('<br>');
+    cell.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center;">
+      <strong>${d.getDate()}</strong>
+      <button class="btn-outline icon-btn" aria-label="이 날짜 보기">보기</button>
+    </div>
+    <div class="muted" style="margin-top:6px; font-size:12px">${preview}</div>`;
+    cell.querySelector('button').onclick=()=>{ datePick.value=fmt(d); render(d); renderWeek(d); };
+    calendar.appendChild(cell);
   }
 }
 
-/* 이벤트 */
-addBtn.onclick=()=>{if(taskInput.value.trim()){addTask(new Date(datePick.value),taskInput.value,repeatSel.value); taskInput.value="";}}
-todayBtn.onclick=()=>{const t=new Date(); datePick.value=fmt(t); render(t); renderWeek(t);}
-datePick.onchange=()=>{const d=new Date(datePick.value); render(d); renderWeek(d);}
-clearBtn.onclick=()=>{const d=new Date(datePick.value); save(d,load(d).filter(t=>!t.done)); render(d);}
-exportBtn.onclick=()=>{const d=new Date(datePick.value); const arr=load(d);
- const blob=new Blob([JSON.stringify(arr)],{type:"application/json"}); const a=document.createElement("a");
- a.href=URL.createObjectURL(blob); a.download=`plan_${fmt(d)}.json`; a.click();}
-importFile.onchange=e=>{const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=()=>{save(new Date(datePick.value),JSON.parse(r.result)); render(new Date(datePick.value));}; r.readAsText(f);}}
+/* ===== 다크모드 ===== */
+$("#darkToggle").onclick=()=>{ document.body.classList.toggle('dark'); localStorage.setItem('planner.theme', document.body.classList.contains('dark')?'dark':'light'); };
+(function initTheme(){ if(localStorage.getItem('planner.theme')==='dark'){ document.body.classList.add('dark'); } })();
 
-/* 다크모드 */
-$("#darkToggle").onclick=()=>document.body.classList.toggle("dark");
+/* ===== PWA: 설치 버튼 / SW 등록 ===== */
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt', (e)=>{
+  e.preventDefault(); deferredPrompt=e;
+  const btn=$("#installBtn"); btn.style.display='inline-block';
+});
+$("#installBtn").onclick=async ()=>{
+  if(!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt=null;
+  $("#installBtn").style.display='none';
+};
+// Service Worker 등록
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=> {
+    navigator.serviceWorker.register('./service-worker.js', { scope:'./' }).catch(console.error);
+  });
+}
 
-/* 초기 */
+/* ===== 이벤트 바인딩 ===== */
+const addBtnHandler=()=>{ const text=taskInput.value.trim(); if(!text) return;
+  const d=new Date(datePick.value || Date.now());
+  addTask(d, text, repeatSel.value); applyRepeatsFrom(d);
+  taskInput.value=''; taskInput.focus();
+};
+function addTask(date,text,repeat){ const arr=load(date); arr.push({text,done:false,repeat,tags:tagify(text),star:false}); save(date,arr); render(date); }
+
+const todayBtn=$("#todayBtn");
+const clearBtn=$("#clearDone");
+const exportBtnEl=$("#exportBtn"), importFileEl=$("#importFile");
+
+$("#addBtn").onclick=addBtnHandler;
+$("#taskInput").addEventListener('keydown', e=>{ if(e.key==='Enter') addBtnHandler(); });
+todayBtn.onclick=()=>{ const t=new Date(); t.setHours(0,0,0,0); datePick.value=fmt(t); render(t); renderWeek(t); };
+datePick.onchange=()=>{ const d=new Date(datePick.value); render(d); renderWeek(d); };
+clearBtn.onclick=()=>{ const d=new Date(datePick.value); save(d, load(d).filter(t=>!t.done)); render(d); };
+exportBtnEl.onclick=()=>{ const d=new Date(datePick.value); const arr=load(d);
+  const blob=new Blob([JSON.stringify(arr,null,2)],{type:'application/json'}); const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download=`plan_${fmt(d)}.json`; a.click(); };
+importFileEl.onchange=e=>{ const f=e.target.files?.[0]; if(!f) return;
+  const r=new FileReader(); r.onload=()=>{ try{ const arr=JSON.parse(r.result); const d=new Date(datePick.value); save(d,arr); render(d);}catch{alert('JSON 형식 오류');} }; r.readAsText(f,'utf-8'); };
+
+/* ===== 초기 구동 ===== */
 (function init(){
-  if(Notification.permission!=="granted") Notification.requestPermission();
-  const t=new Date(); datePick.value=fmt(t);
+  if('Notification' in window && Notification.permission==='default'){ Notification.requestPermission(); }
+  const t=new Date(); t.setHours(0,0,0,0);
+  datePick.value = fmt(t);
   render(t); renderWeek(t); renderCalendar(t);
-  applyRepeats();
 })();
 </script>
 </body>
