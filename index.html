@@ -3,255 +3,106 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>닮은꼴 찾기 (연예인/동물/사물)</title>
+<title>닮은꼴 + 만화필터</title>
 <style>
-  :root { --bg:#0b1220; --card:#121a2b; --text:#e7ecff; --muted:#9fb0ff; --accent:#6aa2ff;}
-  body{margin:0;background:var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,AppleSDGothicNeo,"Noto Sans KR",Segoe UI,Roboto}
-  header{padding:18px 16px;border-bottom:1px solid #1f2a44}
-  h1{font-size:18px;margin:0} .muted{color:var(--muted);font-size:13px}
-  main{max-width:960px;margin:24px auto;padding:0 16px;display:grid;gap:16px}
-  .card{background:var(--card);border:1px solid #1f2a44;border-radius:14px;padding:14px}
-  .row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
-  input[type=file]{display:none}
-  .btn,.chip{background:#192648;border:1px solid #243357;color:var(--text);padding:8px 12px;border-radius:10px;cursor:pointer;font-size:14px}
-  .btn.primary{background:var(--accent);border-color:#5b91ea;color:#0b1220;font-weight:700}
-  .btn:disabled{opacity:.55;cursor:not-allowed}
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
-  .thumb{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px;border:1px solid #1f2a44}
-  .row>label{display:inline-flex;gap:8px;align-items:center}
-  progress{width:180px;height:10px}
-  .kvs{font-size:14px;line-height:1.6}
-  .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#243357;margin:2px 4px 0 0}
-  .small{font-size:12px;color:var(--muted)}
-  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace}
-  .right{margin-left:auto}
+  body {margin:0;background:#0b1220;color:#e7ecff;font-family:"Noto Sans KR",sans-serif;text-align:center;}
+  .container{max-width:900px;margin:30px auto;padding:0 16px;}
+  h1{font-size:24px;margin-bottom:8px;}
+  .card{background:#121a2b;border-radius:12px;padding:16px;margin:18px 0;border:1px solid #1f2a44;}
+  .btn{background:#6aa2ff;color:#0b1220;padding:8px 12px;border:none;border-radius:8px;font-weight:bold;cursor:pointer;}
+  input[type=file]{display:none;}
+  canvas{max-width:100%;border-radius:8px;margin-top:10px;}
+  .small{font-size:13px;color:#9fb0ff;}
+  #cartoonCanvas{margin-top:12px;border:1px solid #1f2a44;}
 </style>
 </head>
 <body>
-<header>
-  <h1>📷 닮은꼴 찾기</h1>
-  <div class="muted">사진을 올리면 <b>동물/사물 라벨</b>을 자동 분석하고, 추가한 <b>사람 갤러리</b>에서 닮은꼴을 찾아줘요.</div>
-</header>
+<div class="container">
+  <h1>📸 닮은꼴 + 만화필터</h1>
+  <p class="small">사진을 업로드하면 사물·동물 라벨과 얼굴 인식 후, 만화풍으로 변환합니다 🎨</p>
 
-<main>
-  <!-- 업로드/모델 상태 -->
-  <section class="card">
-    <div class="row">
-      <label class="btn">
-        <input id="fileInput" type="file" accept="image/*"/>
-        사진 업로드
-      </label>
-      <button id="demoBtn" class="chip">샘플로 테스트</button>
-      <div class="right small">모델 로딩 상태: <span id="modelStatus">대기중</span></div>
-    </div>
-    <div class="row" style="margin-top:8px">
-      <progress id="prog" max="100" value="0"></progress>
-      <span id="progText" class="small"></span>
-    </div>
-  </section>
+  <div class="card">
+    <label class="btn">
+      <input id="fileInput" type="file" accept="image/*"> 사진 업로드
+    </label>
+    <span id="status" class="small">모델 로딩중...</span><br>
+    <canvas id="canvas"></canvas>
+    <canvas id="cartoonCanvas"></canvas>
+    <div id="labels" class="small"></div>
+    <div id="matches" class="small" style="margin-top:8px;"></div>
+  </div>
+</div>
 
-  <!-- 결과 -->
-  <section class="grid">
-    <div class="card">
-      <h3 style="margin-top:2px">🔎 분석 결과</h3>
-      <canvas id="canvas" class="thumb" style="max-width:100%;height:auto"></canvas>
-      <div id="labels" class="kvs" style="margin-top:8px"></div>
-    </div>
-
-    <div class="card">
-      <h3 style="margin-top:2px">👤 닮은 사람(로컬 갤러리)</h3>
-      <div id="faceStatus" class="small">갤러리 인원: <span id="galleryCount">0</span>명</div>
-      <div id="matches" class="kvs" style="margin-top:8px"></div>
-    </div>
-  </section>
-
-  <!-- 갤러리 관리 -->
-  <section class="card">
-    <div class="row">
-      <h3 style="margin:0">🗂 내 갤러리 추가/관리</h3>
-      <button id="clearGallery" class="btn" title="로컬스토리지 초기화">모두 지우기</button>
-    </div>
-    <div class="row" style="margin-top:8px">
-      <input id="nameInput" placeholder="이름 (예: 아이유, RM, 마동석)" class="chip" style="flex:1;min-width:220px"/>
-      <label class="btn">
-        <input id="refInput" type="file" accept="image/*"/>
-        사람 사진 추가
-      </label>
-      <span class="small">추가 즉시 얼굴 임베딩을 계산해 저장합니다.</span>
-    </div>
-    <div id="gallery" class="grid" style="margin-top:12px"></div>
-  </section>
-
-  <section class="card small">
-    <b>TIP</b>
-    <ul>
-      <li>사람 매칭은 <span class="mono">face-api.js</span> 임베딩(128D)을 사용합니다. 정확도를 높이려면 레퍼런스 사진을 <b>정면, 단일 인물</b>로 추가하세요.</li>
-      <li>동물/사물 라벨은 <span class="mono">TensorFlow.js MobileNet</span>을 사용합니다. 상위 3개 라벨과 신뢰도를 표시합니다.</li>
-      <li>모든 데이터(갤러리 임베딩)는 <b>로컬스토리지</b>에만 저장됩니다.</li>
-    </ul>
-  </section>
-</main>
-
-<!-- 라이브러리 (CDN) -->
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.0"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<!-- JS 라이브러리 -->
+<script src="https://unpkg.com/@tensorflow/tfjs@4.20.0"></script>
+<script src="https://unpkg.com/@tensorflow-models/mobilenet@2.1.0"></script>
+<script src="https://unpkg.com/@tensorflow-models/body-pix@2.2.0"></script>
+<script defer src="https://unpkg.com/face-api.js@0.22.2/dist/face-api.min.js"></script>
 
 <script>
-/* ======= 전역 ======= */
-let mobilenetModel = null;
-const qs = (s)=>document.querySelector(s);
-const canvas = qs('#canvas'), ctx = canvas.getContext('2d');
-const modelStatus = qs('#modelStatus'); const prog = qs('#prog'); const progText = qs('#progText');
-const galleryEl = qs('#gallery'); const galleryCountEl = qs('#galleryCount');
-const labelsEl = qs('#labels'); const matchesEl = qs('#matches');
+let mobilenetModel=null;
+let bodypixModel=null;
+const fileInput=document.getElementById('fileInput');
+const canvas=document.getElementById('canvas');
+const cartoonCanvas=document.getElementById('cartoonCanvas');
+const ctx=canvas.getContext('2d');
+const cctx=cartoonCanvas.getContext('2d');
+const statusEl=document.getElementById('status');
+const labelsEl=document.getElementById('labels');
+const matchesEl=document.getElementById('matches');
 
-/* ======= 로컬스토리지 유틸 ======= */
-const LS_KEY = 'lookalike.gallery.v1'; // [{name, descriptor(Float32[128] as array), thumbDataUrl}]
-function loadGallery(){ try { return JSON.parse(localStorage.getItem(LS_KEY)||'[]'); } catch { return []; } }
-function saveGallery(arr){ localStorage.setItem(LS_KEY, JSON.stringify(arr)); renderGallery(); }
-
-/* ======= 모델 로딩 ======= */
 async function loadModels(){
-  modelStatus.textContent = '모델 로딩중…';
-  prog.value = 10; progText.textContent = 'TensorFlow / MobileNet';
-  mobilenetModel = await mobilenet.load({version:2, alpha:1.0});
-  prog.value = 55; progText.textContent = 'face-api (tiny face, landmarks, recognition)';
-  const url = 'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights';
-  await Promise.all([
-    faceapi.nets.tinyFaceDetector.loadFromUri(url),
-    faceapi.nets.faceLandmark68Net.loadFromUri(url),
-    faceapi.nets.faceRecognitionNet.loadFromUri(url),
-  ]);
-  prog.value = 100; progText.textContent = '완료';
-  modelStatus.textContent = '로딩 완료';
+  statusEl.textContent='모델 로딩중...';
+  mobilenetModel = await mobilenet.load();
+  bodypixModel = await bodyPix.load();
+  await faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights');
+  await faceapi.nets.faceLandmark68Net.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights');
+  await faceapi.nets.faceRecognitionNet.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights');
+  statusEl.textContent='모델 로딩 완료 ✅';
 }
-loadModels().catch(e=>{ modelStatus.textContent='로딩 실패'; console.error(e); });
+loadModels();
 
-/* ======= 이미지 표시 ======= */
-function drawToCanvas(img){
-  const max = 800, r = Math.min(max/img.width, max/img.height, 1);
-  canvas.width = Math.round(img.width*r); canvas.height = Math.round(img.height*r);
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.drawImage(img, 0,0, canvas.width, canvas.height);
-}
-
-/* ======= 라벨링 (사물/동물) ======= */
-async function classifyImage(){
-  if(!mobilenetModel) return;
-  const preds = await mobilenetModel.classify(canvas);
-  labelsEl.innerHTML = '<b>사물/동물 라벨 (Top-3)</b><br>' + preds.map(p=>(
-    `<span class="pill">${p.className} — ${(p.probability*100).toFixed(1)}%</span>`
-  )).join(' ');
-}
-
-/* ======= 얼굴 임베딩 계산 ======= */
-async function getFaceDescriptorFromCanvas(){
-  const detOpt = new faceapi.TinyFaceDetectorOptions({inputSize:416, scoreThreshold:0.5});
-  const det = await faceapi.detectSingleFace(canvas, detOpt).withFaceLandmarks().withFaceDescriptor();
-  return det?.descriptor || null;
-}
-async function descriptorFromImageElement(imgEl){
-  const detOpt = new faceapi.TinyFaceDetectorOptions({inputSize:416, scoreThreshold:0.5});
-  const det = await faceapi.detectSingleFace(imgEl, detOpt).withFaceLandmarks().withFaceDescriptor();
-  return det?.descriptor || null;
-}
-
-/* ======= 유사도 계산 (코사인 유사도) ======= */
-function cosineSim(a,b){
-  let dot=0, na=0, nb=0;
-  for(let i=0;i<a.length;i++){ dot+=a[i]*b[i]; na+=a[i]*a[i]; nb+=b[i]*b[i]; }
-  return dot/(Math.sqrt(na)*Math.sqrt(nb)+1e-8);
-}
-
-/* ======= 갤러리 렌더 ======= */
-function renderGallery(){
-  const g = loadGallery(); galleryCountEl.textContent = g.length;
-  galleryEl.innerHTML = g.map((it,idx)=>`
-    <div class="card">
-      <img class="thumb" src="${it.thumbDataUrl}" alt="${it.name}"/>
-      <div style="margin-top:6px">${it.name}</div>
-      <button class="btn small" onclick="removePerson(${idx})">삭제</button>
-    </div>
-  `).join('');
-}
-window.removePerson = function(i){ const g = loadGallery(); g.splice(i,1); saveGallery(g); }
-
-/* ======= 이벤트: 사진 업로드 ======= */
-function handleFile(file){
-  const img = new Image();
-  img.onload = async ()=>{
-    drawToCanvas(img);
-    await classifyImage();
-    const desc = await getFaceDescriptorFromCanvas();
-    if(!desc){ matchesEl.innerHTML = '<span class="small">얼굴을 찾지 못했습니다. 정면 사진을 사용해보세요.</span>'; return; }
-    const g = loadGallery();
-    if(g.length===0){ matchesEl.innerHTML = '<span class="small">갤러리가 비었습니다. 아래에서 사람 사진을 추가하세요.</span>'; return; }
-    // 매칭
-    const sims = g.map(it=>{
-      const sim = cosineSim(new Float32Array(it.descriptor), desc);
-      return {name: it.name, sim, thumb: it.thumbDataUrl};
-    }).sort((a,b)=>b.sim-a.sim).slice(0,3);
-    matchesEl.innerHTML = '<b>닮은꼴 TOP 3</b><br>' + sims.map(s=>`
-      <div class="row" style="margin:6px 0">
-        <img src="${s.thumb}" class="thumb" style="width:52px;height:52px"/>
-        <div style="text-align:left">
-          <div><b>${s.name}</b></div>
-          <div class="small">유사도 ${(s.sim*100).toFixed(1)}%</div>
-        </div>
-      </div>
-    `).join('');
-  };
-  img.src = URL.createObjectURL(file);
-}
-
-/* ======= 이벤트: 갤러리 사람 추가 ======= */
-async function addPerson(name, file){
-  if(!name){ alert('이름을 입력하세요.'); return; }
-  const img = new Image();
-  img.onload = async ()=>{
-    // 캔버스에 잠시 그려서 얼굴 벡터 추출
-    const off = document.createElement('canvas'); const ox=off.getContext('2d');
-    const size = 300, r=Math.min(size/img.width, size/img.height,1);
-    off.width = Math.round(img.width*r); off.height = Math.round(img.height*r);
-    ox.drawImage(img,0,0,off.width,off.height);
-    const desc = await faceapi.detectSingleFace(off, new faceapi.TinyFaceDetectorOptions({inputSize:416,scoreThreshold:0.5}))
-      .withFaceLandmarks().withFaceDescriptor();
-    if(!desc){ alert('얼굴을 찾지 못했습니다. 정면/단일 인물 사진을 사용하세요.'); return; }
-    // 썸네일 저장
-    const thumb = off.toDataURL('image/jpeg', 0.92);
-    const g = loadGallery();
-    g.push({name, descriptor: Array.from(desc.descriptor), thumbDataUrl: thumb});
-    saveGallery(g);
-    alert('갤러리에 추가되었습니다.');
-  };
-  img.src = URL.createObjectURL(file);
-}
-
-/* ======= 바인딩 ======= */
-qs('#fileInput').addEventListener('change', e=>{
-  const f=e.target.files?.[0]; if(f) handleFile(f);
-});
-qs('#demoBtn').addEventListener('click', async ()=>{
-  // 간단한 데모: 샘플 이미지를 dataURL로 생성(회색 배경 + 텍스트)
-  const off=document.createElement('canvas'); off.width=512; off.height=512;
-  const ox=off.getContext('2d'); ox.fillStyle='#ddd'; ox.fillRect(0,0,512,512);
-  ox.fillStyle='#333'; ox.font='bold 28px sans-serif'; ox.fillText('샘플 이미지를 업로드 해주세요',36,260);
-  const img=new Image(); img.onload=()=>handleFile(new File([dataURLtoBlob(off.toDataURL())],'demo.png',{type:'image/png'}));
-  img.src=off.toDataURL();
-});
-function dataURLtoBlob(dataurl){const arr=dataurl.split(','),mime=arr[0].match(/:(.*?);/)[1],bstr=atob(arr[1]);let n=bstr.length,u8=new Uint8Array(n);while(n--)u8[n]=bstr.charCodeAt(n);return new Blob([u8],{type:mime});}
-
-qs('#refInput').addEventListener('change', e=>{
-  const f=e.target.files?.[0]; const name = qs('#nameInput').value.trim();
-  if(f) addPerson(name, f);
-});
-qs('#clearGallery').addEventListener('click', ()=>{
-  if(confirm('갤러리를 모두 삭제할까요?')){ localStorage.removeItem(LS_KEY); renderGallery(); }
+fileInput.addEventListener('change', e=>{
+  const file=e.target.files[0];
+  if(!file)return;
+  const img=new Image();
+  img.onload=()=>handleImage(img);
+  img.src=URL.createObjectURL(file);
 });
 
-/* 초기 렌더 */
-renderGallery();
+async function handleImage(img){
+  const max=500;
+  const r=Math.min(max/img.width,max/img.height,1);
+  canvas.width=img.width*r; canvas.height=img.height*r;
+  ctx.drawImage(img,0,0,canvas.width,canvas.height);
+
+  // 1️⃣ 사물/동물 인식
+  const preds=await mobilenetModel.classify(canvas);
+  labelsEl.innerHTML='<b>사물/동물 라벨:</b><br>'+preds.map(p=>`${p.className} (${(p.probability*100).toFixed(1)}%)`).join('<br>');
+
+  // 2️⃣ 얼굴 인식
+  const det=await faceapi.detectSingleFace(canvas,new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+  matchesEl.textContent = det ? '얼굴 인식 성공 ✅' : '얼굴을 찾지 못했습니다.';
+
+  // 3️⃣ 만화 필터 변환
+  cartoonCanvas.width = canvas.width;
+  cartoonCanvas.height = canvas.height;
+  const segmentation = await bodypixModel.segmentPerson(canvas);
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+  for(let i=0;i<data.length;i+=4){
+    const mask = segmentation.data[i/4];
+    if(mask===1){ // 인물 부분: 색상 강조
+      data[i] = Math.min(255, data[i]*1.2);
+      data[i+1] = Math.min(255, data[i+1]*1.2);
+      data[i+2] = Math.min(255, data[i+2]*1.2);
+    } else { // 배경 부분: 흐림 + 회색톤
+      const avg = (data[i]+data[i+1]+data[i+2])/3;
+      data[i]=data[i+1]=data[i+2]=avg*0.6;
+    }
+  }
+  cctx.putImageData(imageData, 0, 0);
+}
 </script>
 </body>
 </html>
